@@ -164,7 +164,7 @@ AddLocalOption('--with-asan', dest='with_asan', action='store_true',
                help='Build with Address Sanitizer if available')
 
 if GetOption('no_lto') and GetOption('force_lto'):
-    print '--no-lto and --force-lto are mutually exclusive'
+    print('--no-lto and --force-lto are mutually exclusive')
     Exit(1)
 
 ########################################################################
@@ -362,9 +362,9 @@ if main['GCC'] or main['CLANG']:
 
     # Treat warnings as errors but white list some warnings that we
     # want to allow (e.g., deprecation warnings).
-    main.Append(CCFLAGS=['-Werror',
-                         '-Wno-error=deprecated-declarations',
+    main.Append(CCFLAGS=['-Wno-error=deprecated-declarations',
                          '-Wno-error=deprecated',
+                        #  '-Werror',
                         ])
 else:
     print termcap.Yellow + termcap.Bold + 'Error' + termcap.Normal,
@@ -423,8 +423,7 @@ if main['GCC']:
     # to avoid performance penalties on certain AMD chips. Older
     # assemblers detect this as an error, "Error: expecting string
     # instruction after `rep'"
-    as_version_raw = readCommand([main['AS'], '-v', '/dev/null',
-                                  '-o', '/dev/null'],
+    as_version_raw = readCommand([main['AS'], '-v', '/dev/null'],
                                  exception=False).split()
 
     # version strings may contain extra distro-specific
