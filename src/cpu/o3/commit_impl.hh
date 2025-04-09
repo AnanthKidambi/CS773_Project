@@ -616,9 +616,6 @@ DefaultCommit<Impl>::squashAll(ThreadID tid)
     toIEW->commitInfo[tid].squashInst = NULL;
 
     toIEW->commitInfo[tid].pc = pc[tid];
-
-    //TODO: send a packet to SpecBuffer to indicate flush
-    //
 }
 
 template <class Impl>
@@ -746,14 +743,8 @@ DefaultCommit<Impl>::tick()
         } else if (!rob->isEmpty(tid)) {
             DynInstPtr inst = rob->readHeadInst(tid);
 
-            if (inst->isExecuted() && inst->needPostFetch()
-                    && !inst->isExposeCompleted()){
-                //stall due to waiting for validation response
-                if (curTick()-lastCommitTick > 0){
-                    validationStalls+= curTick()-lastCommitTick;
-                }
-
-            }
+            // Akk: needPostFetch false, removed code
+            
             ppCommitStall->notify(inst);
 
             DPRINTF(Commit,"[tid:%i]: Can't commit, Instruction [sn:%lli] PC "

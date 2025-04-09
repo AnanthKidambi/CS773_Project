@@ -1195,7 +1195,9 @@ DefaultIEW<Impl>::executeInsts()
     // if we successfully commit sth, then we need to activate the stage or somehow
     // problems happen when interacting with squash
     // NOTE: we always send validations before execute load requests 
-    ldstQueue.exposeLoads();
+    
+    // Akk: commented inconsequential code
+    // ldstQueue.exposeLoads();
 
     // Uncomment this if you want to see all available instructions.
     // @todo This doesn't actually work anymore, we should fix it.

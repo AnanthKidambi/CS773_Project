@@ -1221,12 +1221,13 @@ InstructionQueue<Impl>::getDeferredMemInstToExecute()
         // 2. virtual fence ahead
         // 3. not ready to expose and gets a TLB miss
         // for both (2, 3) we need to restart the translation
+        // Akk: removed code
         if ( (*it)->translationCompleted() || (*it)->isSquashed()
                 || ((*it)->onlyWaitForFence() && !(*it)->fenceDelay())
-                || ((*it)->onlyWaitForExpose() && (*it)->readyToExpose())) {
+                ) {
             DynInstPtr mem_inst = *it;
             mem_inst->onlyWaitForFence(false);
-            mem_inst->onlyWaitForExpose(false);
+            // Akk: removed code
             deferredMemInsts.erase(it);
             return mem_inst;
         }

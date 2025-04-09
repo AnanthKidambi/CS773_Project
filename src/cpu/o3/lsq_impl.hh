@@ -388,14 +388,8 @@ LSQ<Impl>::recvTimingResp(PacketPtr pkt)
 
     // for expose or validate request,
     // if the instruction is squashed, maybe the req has been deleted
-    if (pkt->isValidate() || pkt->isExpose()){
-        if (!pkt->req){
-            delete pkt;
-            return true;
-        }
-        DPRINTF(LSQ, "Receive an expose/validate response, idx=%d\n",
-                    pkt->reqIdx);
-    }
+    // Akk: removed code
+    assert(!pkt->isValidate() && !pkt->isExpose());
 
     thread[cpu->contextToThread(pkt->req->contextId())]
         .completeDataAccess(pkt);
@@ -421,9 +415,10 @@ LSQ<Impl>::recvTimingResp(PacketPtr pkt)
     }
 
     //TODO: also not validation
-    if (!pkt->isExpose() && !pkt->isValidate()){
-        delete pkt->req;
-    }
+    // Akk: always true if statement
+    assert(!pkt->isExpose() && !pkt->isValidate());
+    delete pkt->req;
+
     delete pkt;
     return true;
 }

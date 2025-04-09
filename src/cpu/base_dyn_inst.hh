@@ -128,7 +128,7 @@ class BaseDynInst : public ExecContext, public RefCounted
         //ValidationCompleted, // never used
         // indicates whether validation finishes
         ExposeCompleted,
-        ExposeSent,
+        // Akk: removed ExposeSent
         // indicates whether expose finishes
         // (should set when expose is sent out)
         PrevInstsCompleted, // all prev instrs are completed
@@ -141,8 +141,7 @@ class BaseDynInst : public ExecContext, public RefCounted
         // [mengjia] indicate whether previous branches are committed
         L1HitHigh,
         L1HitLow,
-        SpecBuffObsoleteHigh,
-        SpecBuffObsoleteLow,
+        // Akk: removed code
         // [SafeSpec] it hits in L1 and is open to invalidations
         /*** [Jiyong,STT] ***/
         InStallList,    // instruction is ready to issue(regsReady) but argsTainted
@@ -163,10 +162,9 @@ class BaseDynInst : public ExecContext, public RefCounted
         ReqMade,
         MemOpDone,
         // [mengjia] indicates need validation or expose
-        NeedPostFetch,      // validate/expose(true), nothing(false)
-        NeedDeletePostReq,  // don't care
+        // Akk: removed NeedPostFetch that is always false
         // [mengjia] indicates only need to expose, do not need to validate
-        NeedExposeOnly,     // set at visibility point: validate(true), expose(false)
+        // Akk: removed NeedExposeOnly
         // [SafeSpec] indicate the instruction needs to be delayed
         // due to virtual fences before to defend against speculative attacks
         FenceDelay,
@@ -176,7 +174,6 @@ class BaseDynInst : public ExecContext, public RefCounted
         HitExternalEviction,
         ValidationFail,     // these 3 flags are used for collecting stats
         OnlyWaitForFence,
-        OnlyWaitForExpose,  // only used in invsiSpec mode
         SpecTLBMiss,
         // [Jiyong,STT] The following are STT flags
         IsUnsquashable,     // a instr is not squashable. In InvisiSpec it's equal to readyToExpose. In STT it's not since access instr is always readyToExpose and readyToExpose == !isArgsTainted
@@ -346,17 +343,9 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool memOpDone() const { return instFlags[MemOpDone]; }
     void memOpDone(bool f) { instFlags[MemOpDone] = f; }
 
-    /** [mengjia] Whether or not need pseudo-validation.
-     * whether speculative laod finishes,
-     * whether validation completes or not (success) */
-    bool needExposeOnly() const { return instFlags[NeedExposeOnly]; }
-    void needExposeOnly(bool f) { instFlags[NeedExposeOnly] = f; }
+    // Akk: removed code
 
-    bool needPostFetch() const { return instFlags[NeedPostFetch]; }
-    void needPostFetch(bool f) { instFlags[NeedPostFetch] = f; }
-
-    bool needDeletePostReq() const { return instFlags[NeedDeletePostReq]; }
-    void needDeletePostReq(bool f) { instFlags[NeedDeletePostReq] = f; }
+    // Akk: useless functions, removed code
 
     bool fenceDelay() const { return instFlags[ReadyToExpose]; }
     void fenceDelay(bool f) { instFlags[ReadyToExpose] = f; }
@@ -376,8 +365,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool onlyWaitForFence() const { return instFlags[OnlyWaitForFence]; }
     void onlyWaitForFence(bool f) { instFlags[OnlyWaitForFence] = f; }
 
-    bool onlyWaitForExpose() const { return instFlags[OnlyWaitForExpose]; }
-    void onlyWaitForExpose(bool f) { instFlags[OnlyWaitForExpose] = f; }
+    // Akk: removed code
 
     bool specTLBMiss() const { return instFlags[SpecTLBMiss]; }
     void specTLBMiss(bool f) { instFlags[SpecTLBMiss] = f; }
@@ -866,27 +854,19 @@ class BaseDynInst : public ExecContext, public RefCounted
     void setSpecCompleted() { status.set(SpecCompleted); }
     bool isSpecCompleted() const { return status[SpecCompleted]; }
 
-    //void setValidationCompleted() { status.set(ValidationCompleted); }
-    //bool isValidationCompleted() const { return status[ValidationCompleted]; }
+    // Akk: removed code
 
     void setExposeCompleted() { status.set(ExposeCompleted); }
     bool isExposeCompleted() const { return status[ExposeCompleted]; }
 
     // mengjia, for writeback invisispec loads
     bool isLoadSafeToCommit() const {
-        if (isLoad() && !isSquashed() && getFault() == NoFault) {
-            if (needPostFetch() && needExposeOnly() && !isExposeSent())
-                return false;
-            if (needPostFetch() && !needExposeOnly() && !isExposeCompleted())
-                return false;
-            return true;
-        } else {
-            return true;
-        }
+        // Akk: needPostFetch is always false, removed code
+        
+        return true;
     }
 
-    void setExposeSent() { status.set(ExposeSent); }
-    bool isExposeSent() const { return status[ExposeSent]; }
+    // Akk: removed code
 
     void setL1HitHigh() { status.set(L1HitHigh); }
     void clearL1HitHigh() { status.reset(L1HitHigh); }
@@ -899,11 +879,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     void setPrevInstsCompleted() { status.set(PrevInstsCompleted); }
     bool isPrevInstsCompleted() const { return status[PrevInstsCompleted]; }
 
-    void setSpecBuffObsoleteHigh() { status.set(SpecBuffObsoleteHigh); }
-    bool isSpecBuffObsoleteHigh() const { return status[SpecBuffObsoleteHigh]; }
-
-    void setSpecBuffObsoleteLow() { status.set(SpecBuffObsoleteLow); }
-    bool isSpecBuffObsoleteLow() const { return status[SpecBuffObsoleteLow]; }
+    // Akk: removed code
 
     void setPrevBrsResolved() { status.set(PrevBrsResolved); }
     bool isPrevBrsResolved() const { return status[PrevBrsResolved]; }
@@ -1136,7 +1112,7 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
             || flags.isSet(Request::LLSC)
             || flags.isSet(Request::STRICT_ORDER))
             && !readyToExpose()){
-        onlyWaitForExpose(true);
+        // Akk: removed code
         // FIXME: reschedule due to LLSC
         // reuse TLBMiss for now
         specTLBMiss(true);
@@ -1208,13 +1184,8 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
             if (!readyToExpose()){
                 translationStarted(false);
                 translationCompleted(false);
-                onlyWaitForExpose(true);
+                // Akk: removed code
                 specTLBMiss(true);
-                //delete req;
-                //if (sreqLow){
-                //    delete sreqLow;
-                //    delete sreqHigh;
-                //}
                 return NoFault;
             }
             // set it as executed and fault flag.

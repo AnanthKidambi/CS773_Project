@@ -183,18 +183,7 @@ BaseDynInst<Impl>::~BaseDynInst()
     if (reqToVerify)
         delete reqToVerify;
 
-    if (needDeletePostReq()){
-        if (postReq){
-            delete postReq;
-            postReq = NULL;
-        }
-        if (postSreqLow) {
-            delete postSreqLow;
-            delete postSreqHigh;
-            postSreqLow = NULL;
-            postSreqHigh = NULL;
-        }
-    }
+    // Akk: removed code
 }
 
 #ifdef DEBUG

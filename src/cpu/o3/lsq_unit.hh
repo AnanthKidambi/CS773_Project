@@ -755,26 +755,9 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
                         "addr %#x\n", store_idx, req->getVaddr());
                 DPRINTF(LSQUnit, "Still need dummy load to hide tainted address of store");
 
-                // Jiyong, STT: writeback is deferred to GETS writeback
-                //PacketPtr data_pkt = new Packet(req, MemCmd::ReadReq);
-                //data_pkt->dataStatic(load_inst->stFwdData);
-
-                //WritebackEvent *wb = new WritebackEvent(load_inst, data_pkt, this);
-
-                // We'll say this has a 1 cycle load-store forwarding latency
-                // for now.
-                // @todo: Need to make this a parameter.
-                //cpu->schedule(wb, curTick());
                 load_inst->alreadyForwarded = true;
 
                 break;
-                // Don't need to do anything special for split loads.
-                //if (TheISA::HasUnalignedMemAcc && sreqLow) {
-                    //delete sreqLow;
-                    //delete sreqHigh;
-                //}
-
-                //return NoFault;
 
             } else {
                 // Get shift amount for offset into the store's data.
@@ -885,20 +868,12 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
     PacketPtr fst_data_pkt = NULL;
     PacketPtr snd_data_pkt = NULL;
 
-    // According to the isInsivisibleSpec variable to create
-    // corresponding type of packets [mengjia]
-    bool sendSpecRead = false;
-    if (cpu->isInvisibleSpec) {
-        if(!load_inst->readyToExpose()){
-            assert(!req->isLLSC());
-            assert(!req->isStrictlyOrdered());
-            assert(!req->isMmappedIpr());
-            sendSpecRead = true;
-            DPRINTF(LSQUnit, "send a spec read for inst [sn:%lli]\n",
-                    load_inst->seqNum);
-        }
-    }
+    // Akk: removed code, setting sendSpecRead to false since !cpu->isInvisibleSpec
+    assert(!cpu->isInvisibleSpec);
 
+    bool sendSpecRead = false;
+    // Akk: removed code, refer to old code for initializing sendSpecRead
+    
     assert( !(sendSpecRead && load_inst->isSpecCompleted()) &&
             "Sending specRead twice for the same load insts");
 
@@ -922,45 +897,45 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
 
         fst_data_pkt->setFirst();
         if (sendSpecRead){
-            int src_idx = checkSpecBuffHit(req, load_idx);
-            if (src_idx != -1) {
-                if (cpu->allowSpecBufHit){
-                    data_pkt->setOnlyAccessSpecBuff();
-                }
-                data_pkt->srcIdx = src_idx;
-                specBuffHits++;
-            }else{
-                specBuffMisses++;
-            }
+            // int src_idx = checkSpecBuffHit(req, load_idx);
+            // if (src_idx != -1) {
+            //     if (cpu->allowSpecBufHit){
+            //         data_pkt->setOnlyAccessSpecBuff();
+            //     }
+            //     data_pkt->srcIdx = src_idx;
+            //     specBuffHits++;
+            // }else{
+            //     specBuffMisses++;
+            // }
         }
         fst_data_pkt->reqIdx = load_idx;
     } else {
         // Create the split packets.
         if(sendSpecRead){
 
-            fst_data_pkt = Packet::createReadSpec(sreqLow);
-            int fst_src_idx = checkSpecBuffHit(sreqLow, load_idx);
-            if ( fst_src_idx != -1 ) {
-                if (cpu->allowSpecBufHit){
-                    fst_data_pkt->setOnlyAccessSpecBuff();
-                }
-                fst_data_pkt->srcIdx = fst_src_idx;
-                specBuffHits++;
-            } else {
-                specBuffMisses++;
-            }
+            // fst_data_pkt = Packet::createReadSpec(sreqLow);
+            // int fst_src_idx = checkSpecBuffHit(sreqLow, load_idx);
+            // if ( fst_src_idx != -1 ) {
+            //     if (cpu->allowSpecBufHit){
+            //         fst_data_pkt->setOnlyAccessSpecBuff();
+            //     }
+            //     fst_data_pkt->srcIdx = fst_src_idx;
+            //     specBuffHits++;
+            // } else {
+            //     specBuffMisses++;
+            // }
 
-            snd_data_pkt = Packet::createReadSpec(sreqHigh);
-            int snd_src_idx = checkSpecBuffHit(sreqHigh, load_idx);
-            if ( snd_src_idx != -1 ) {
-                if (cpu->allowSpecBufHit){
-                    snd_data_pkt->setOnlyAccessSpecBuff();
-                }
-                snd_data_pkt->srcIdx = snd_src_idx;
-                specBuffHits++;
-            } else {
-                specBuffMisses++;
-            }
+            // snd_data_pkt = Packet::createReadSpec(sreqHigh);
+            // int snd_src_idx = checkSpecBuffHit(sreqHigh, load_idx);
+            // if ( snd_src_idx != -1 ) {
+            //     if (cpu->allowSpecBufHit){
+            //         snd_data_pkt->setOnlyAccessSpecBuff();
+            //     }
+            //     snd_data_pkt->srcIdx = snd_src_idx;
+            //     specBuffHits++;
+            // } else {
+            //     specBuffMisses++;
+            // }
         } else {
             fst_data_pkt = Packet::createRead(sreqLow);
             snd_data_pkt = Packet::createRead(sreqHigh);
@@ -1058,51 +1033,11 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
 
     // Set everything ready for expose/validation after the read is
     // successfully sent out
-    if(sendSpecRead){ // sending actual request
-        // [mengjia] Here we set the needExposeOnly flag
-        if (cpu->needsTSO && !load_inst->isDataPrefetch()){
-            // need to check whether previous load_instructions specComplete or not
-            if ( checkPrevLoadsExecuted(load_idx) ){
-                load_inst->needExposeOnly(true);
-                DPRINTF(LSQUnit, "Set load PC %s, [sn:%lli] as needExposeOnly\n", load_inst->pcState(), load_inst->seqNum);
-            } else {
-                DPRINTF(LSQUnit, "Set load PC %s, [sn:%lli] as needValidation\n", load_inst->pcState(), load_inst->seqNum);
-            }
-        }else{
-            //if RC, always only need expose
-            load_inst->needExposeOnly(true);
-            DPRINTF(LSQUnit, "Set load PC %s, [sn:%lli] as needExposeOnly\n", load_inst->pcState(), load_inst->seqNum);
-        }
-
-        load_inst->needPostFetch(true);
-        assert(!req->isMmappedIpr());
-        //save expose requestPtr
-        if (TheISA::HasUnalignedMemAcc && sreqLow) {
-            load_inst->postSreqLow = new Request(*sreqLow);
-            load_inst->postSreqHigh = new Request(*sreqHigh);
-            load_inst->postReq = NULL;
-        }else{
-            load_inst->postReq = new Request(*req);
-            load_inst->postSreqLow = NULL;
-            load_inst->postSreqHigh = NULL;
-        }
-        load_inst->needDeletePostReq(true);
-        DPRINTF(LSQUnit, "created validation/expose"
-                " request for inst [sn:%lli]"
-                "req=%#x, reqLow=%#x, reqHigh=%#x\n",
-            load_inst->seqNum, (Addr)(load_inst->postReq),
-            (Addr)(load_inst->postSreqLow),
-            (Addr)(load_inst->postSreqHigh));
-    } else {
-        load_inst->setExposeCompleted();
-        load_inst->needPostFetch(false);
-        if (TheISA::HasUnalignedMemAcc && sreqLow) {
-            setSpecBuffState(sreqLow);
-            setSpecBuffState(sreqHigh);
-        } else {
-            setSpecBuffState(req);
-        }
-    }
+    // Akk: deleted code
+    assert(!sendSpecRead);
+    
+    load_inst->setExposeCompleted();
+    // Akk: needPostFetch false, removed code
 
     return NoFault;
 }

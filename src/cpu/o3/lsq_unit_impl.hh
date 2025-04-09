@@ -78,9 +78,10 @@ LSQUnit<Impl>::WritebackEvent::process()
     if (pkt->senderState)
         delete pkt->senderState;
 
-    if (!pkt->isValidate() && !pkt->isExpose()){
-        delete pkt->req;
-    }
+    // Akk: always true if statement
+    assert(!pkt->isValidate() && !pkt->isExpose());
+    delete pkt->req;
+
     delete pkt;
 }
 
@@ -119,18 +120,14 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
         } else {
             inst->setL1HitLow();
         }
-    } else if (!pkt->isSpec()) {
-        setSpecBuffState(pkt->req);
     }
+    // Akk: removed code, setSpecBuff
 
     // If this is a split access, wait until all packets are received.
     if (TheISA::HasUnalignedMemAcc && !state->complete()) {
         // Not the good place, but we need to fix the memory leakage
-        if (pkt->isExpose() || pkt->isValidate()){
-            assert(!inst->needDeletePostReq());
-            assert(!pkt->isInvalidate());
-            delete pkt->req;
-        }
+        // Akk: removed code
+        assert(!pkt->isExpose() && !pkt->isValidate());
         return;
     }
 
@@ -153,10 +150,9 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
         if (inst->isStore()) {
             completeStore(state->idx);
         }
-
-        if (pkt->isValidate() || pkt->isExpose()) {
-            completeValidate(inst, pkt);
-        }
+        
+        // Akk: removed code(validation of loads to be done after this line)
+        assert(!pkt->isExpose() && !pkt->isValidate());
     }
 
     if (TheISA::HasUnalignedMemAcc && state->isSplit && state->isLoad) {
@@ -168,12 +164,9 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
     // probe point, not sure about the mechanism [mengjia]
     cpu->ppDataAccessComplete->notify(std::make_pair(inst, pkt));
 
-    // Not the good place, but we need to fix the memory leakage
-    if (pkt->isExpose() || pkt->isValidate()){
-        assert(!inst->needDeletePostReq());
-        assert(!pkt->isInvalidate());
-        delete pkt->req;
-    }
+    // Akk: removed code
+    assert(!pkt->isExpose() && !pkt->isValidate());
+    
     delete state;
 }
 
@@ -570,8 +563,9 @@ LSQUnit<Impl>::checkSnoop(PacketPtr pkt)
                 // [SafeSpec] in safespec, we do not need to squash
                 // the load at the head of LQ,
                 // as well as the one do not need validation
+                // Akk: removed code
                 if (cpu->isInvisibleSpec &&
-                    (load_idx==loadHead || ld_inst->needExposeOnly())){
+                    (load_idx==loadHead)){
                     force_squash = false;
                 }
                 if (!pkt->isExternalEviction() && cpu->isInvisibleSpec){
@@ -625,14 +619,7 @@ LSQUnit<Impl>::checkPrevLoadsExecuted(int req_idx)
             return false;
         }
 
-        // mengjia, fix bug
-        if (cpu->needsTSO && loadQueue[load_idx]->needPostFetch() &&
-            !loadQueue[load_idx]->needExposeOnly() &&
-            !loadQueue[load_idx]->isExposeCompleted() ) {
-            // in TSO we cannot expose if a previous load
-            // that needs validation has not validate yet
-            return false;
-        }
+        // Akk: needPostFetch false, removed code
 
         incrLdIdx(load_idx);
     }
@@ -645,23 +632,8 @@ template <class Impl>
 void
 LSQUnit<Impl>::setSpecBuffState(RequestPtr expose_req)
 {
-    Addr req_eff_addr1 = expose_req->getPaddr() & cacheBlockMask;
-
-    int load_idx = loadHead;
-    while (load_idx != loadTail){
-        DynInstPtr ld_inst = loadQueue[load_idx];
-        if (ld_inst->effAddrValid()){
-
-            Addr ld_eff_addr1 = ld_inst->physEffAddrLow & cacheBlockMask;
-            Addr ld_eff_addr2 = ld_inst->physEffAddrHigh & cacheBlockMask;
-            if (ld_eff_addr1 == req_eff_addr1){
-                ld_inst->setSpecBuffObsoleteLow();
-            } else if (ld_eff_addr2 == req_eff_addr1){
-                ld_inst->setSpecBuffObsoleteHigh();
-            }
-        }
-        incrLdIdx(load_idx);
-    }
+    // Akk:unreachable code, removed code
+    assert(false);
 }
 
 
@@ -669,51 +641,9 @@ template <class Impl>
 int
 LSQUnit<Impl>::checkSpecBuffHit(RequestPtr req, int req_idx)
 {
-
-    Addr req_eff_addr1 = req->getPaddr() & cacheBlockMask;
-    //Addr req_eff_addr2 = (req->getPaddr() + req->getSize()-1) & cacheBlockMask;
-    // the req should be within the same cache line
-    //assert (req_eff_addr1 == req_eff_addr2);
-    assert (!loadQueue[req_idx]->isExecuted());
-
-    int load_idx = loadHead;
-
-    while (load_idx != loadTail){
-        DynInstPtr ld_inst = loadQueue[load_idx];
-        if (ld_inst->effAddrValid()){
-            Addr ld_eff_addr1 = ld_inst->physEffAddrLow & cacheBlockMask;
-            Addr ld_eff_addr2 = ld_inst->physEffAddrHigh & cacheBlockMask;
-
-            if ((req_eff_addr1 == ld_eff_addr1 && ld_inst->isL1HitLow())
-                || (req_eff_addr1 == ld_eff_addr2 && ld_inst->isL1HitHigh())){
-                return -1;
-                //already in L1, do not copy from buffer
-            } else {
-
-                if (ld_inst->isExecuted() && ld_inst->needPostFetch()
-                    && !ld_inst->isSquashed() && ld_inst->fault==NoFault){
-                    if (req_eff_addr1 == ld_eff_addr1 && !ld_inst->isL1HitLow()
-                            && !ld_inst->isSpecBuffObsoleteLow()){
-                        DPRINTF(LSQUnit, "Detected Spec Hit with inst [sn:%lli] "
-                            "and [sn:%lli] (low) at address %#x\n",
-                            loadQueue[req_idx]->seqNum, ld_inst->seqNum,
-                            req_eff_addr1);
-                        return load_idx;
-                    } else if ( ld_eff_addr2 !=0  &&
-                        req_eff_addr1 == ld_eff_addr2 && !ld_inst->isL1HitHigh()
-                        && !ld_inst->isSpecBuffObsoleteHigh()){
-                        DPRINTF(LSQUnit, "Detected Spec Hit with inst [sn:%lli] "
-                            "and [sn:%lli] (high) at address %#x\n",
-                            loadQueue[req_idx]->seqNum, ld_inst->seqNum,
-                            req_eff_addr1);
-                        return load_idx;
-                    }
-                }
-            }
-        }
-        incrLdIdx(load_idx);
-    }
-
+    // Akk: unreachable code, removed code
+    assert(false);
+    
     return -1;
 }
 
@@ -1034,41 +964,7 @@ LSQUnit<Impl>::updateVisibleState()
             inst->readyToExpose(true);
         } else if (cpu->protectionEnabled && cpu->isInvisibleSpec){
             assert (0); // not supported
-            // invisiSpec (readyToExpose flag is effective)
-            if (cpu->STT) {  // apply STT
-                if (inst->needPostFetch() &&
-                    !inst->isArgsTainted() && !inst->readyToExpose())
-                    ;
-                    //++loadsToVLD;
-                else if (inst->isArgsTainted() && inst->readyToExpose()) {
-                    DPRINTF(LSQUnit, "The load can not be validated "
-                            "[sn:%lli] PC %s\n", inst->seqNum, inst->pcState());
-                    assert(0);
-                }
-                inst->readyToExpose(!inst->isArgsTainted());
-            } else { // !apply STT
-                if ( (cpu->isFuturistic && inst->isPrevInstsCompleted()) ||
-                        (!cpu->isFuturistic && inst->isPrevBrsResolved())) {
-                    if (!inst->readyToExpose()){
-                        DPRINTF(LSQUnit, "Set readyToExpose for "
-                                "inst [sn:%lli] PC %s\n", inst->seqNum, inst->pcState());
-                        if (inst->needPostFetch()){
-                            ;
-                            //++loadsToVLD;
-                        }
-                    }
-                    inst->readyToExpose(true);
-                } else {
-                    if (inst->readyToExpose()){
-                        DPRINTF(LSQUnit, "The load can not be validated "
-                                "[sn:%lli] PC %s\n", inst->seqNum, inst->pcState());
-                        assert(0);
-                        //--loadsToVLD;
-                    }
-                    inst->readyToExpose(false);
-                }
-            }
-            inst->fenceDelay(false);
+            // Akk: removed code
         } else {
             // unsafe
             inst->readyToExpose(true);
@@ -1100,241 +996,12 @@ LSQUnit<Impl>::exposeLoads()
         loadVLDIdx != loadTail &&
         loadQueue[loadVLDIdx]) {
 
-        if (loadQueue[loadVLDIdx]->isSquashed()){
-            incrLdIdx(loadVLDIdx);
-            continue;
-        }
-        // skip the loads that either do not need to expose
-        // or exposed already
-        if(!loadQueue[loadVLDIdx]->needPostFetch()
-                || loadQueue[loadVLDIdx]->isExposeSent() ){
-            incrLdIdx(loadVLDIdx);
-            continue;
-        }
+        // Akk: needPostFetch false, removed code
+        // refer to old code to send expose in case of misspeculation
+        incrLdIdx(loadVLDIdx);
+    } 
 
-        DynInstPtr load_inst = loadQueue[loadVLDIdx];
-        if (loadQueue[loadVLDIdx]->fault != NoFault){
-            // load is executed, so it wait for expose complete
-            // to send it to commit, regardless of whether it is ready
-            // to expose
-            load_inst->setExposeCompleted();
-            load_inst->setExposeSent();
-            if (load_inst->isExecuted()){
-                DPRINTF(LSQUnit, "Execute finished and gets violation fault."
-                    "Send inst [sn:%lli] to commit stage.\n",
-                    load_inst->seqNum);
-                    iewStage->instToCommit(load_inst);
-                    iewStage->activityThisCycle();
-            }
-            incrLdIdx(loadVLDIdx);
-            continue;
-        }
-
-        // skip the loads that need expose but
-        // are not ready
-        if (loadQueue[loadVLDIdx]->needPostFetch()
-                && !loadQueue[loadVLDIdx]->readyToExpose()){
-            incrLdIdx(loadVLDIdx);
-            continue;
-        }
-
-        assert(loadQueue[loadVLDIdx]->needPostFetch()
-                && loadQueue[loadVLDIdx]->readyToExpose() );
-
-        assert(!load_inst->isCommitted());
-
-
-        Request *req = load_inst->postReq;
-        Request *sreqLow = load_inst->postSreqLow;
-        Request *sreqHigh = load_inst->postSreqHigh;
-
-        // we should not have both req and sreqLow not NULL
-        assert( !(req && sreqLow));
-
-        DPRINTF(LSQUnit, "Validate/Expose request for inst [sn:%lli]"
-            " PC= %s. req=%#x, reqLow=%#x, reqHigh=%#x\n",
-            load_inst->seqNum, load_inst->pcState(),
-            (Addr)(load_inst->postReq),
-            (Addr)(load_inst->postSreqLow), (Addr)(load_inst->postSreqHigh));
-
-        PacketPtr data_pkt = NULL;
-        PacketPtr snd_data_pkt = NULL;
-
-        LSQSenderState *state = new LSQSenderState;
-        state->isLoad = false;
-        state->idx = loadVLDIdx;
-        state->inst = load_inst;
-        state->noWB = true;
-
-        bool split = false;
-        if (TheISA::HasUnalignedMemAcc && sreqLow) {
-            split = true;
-        } else {
-            assert(req);
-        }
-
-        bool onlyExpose = false;
-        if (!split) {
-            if (load_inst->needExposeOnly() || load_inst->isL1HitLow()){
-                data_pkt = Packet::createExpose(req);
-                onlyExpose = true;
-            }else {
-                data_pkt = Packet::createValidate(req);
-                if (!load_inst->vldData)
-                    load_inst->vldData = new uint8_t[1];
-                data_pkt->dataStatic(load_inst->vldData);
-            }
-            data_pkt->senderState = state;
-            data_pkt->setFirst();
-            data_pkt->reqIdx = loadVLDIdx;
-            DPRINTF(LSQUnit, "contextid = %d\n", req->contextId());
-        } else {
-            // allocate memory if we need at least one validation
-            if (!load_inst->needExposeOnly() &&
-                (!load_inst->isL1HitLow() || !load_inst->isL1HitHigh())){
-                if (!load_inst->vldData)
-                    load_inst->vldData = new uint8_t[2];
-            } else {
-                onlyExpose = true;
-            }
-
-            // Create the split packets. - first one
-            if (load_inst->needExposeOnly() || load_inst->isL1HitLow()){
-                data_pkt = Packet::createExpose(sreqLow);
-            }else{
-                data_pkt = Packet::createValidate(sreqLow);
-                assert(load_inst->vldData);
-                data_pkt->dataStatic(load_inst->vldData);
-            }
-
-            // Create the split packets. - second one
-            if (load_inst->needExposeOnly() || load_inst->isL1HitHigh()){
-                snd_data_pkt = Packet::createExpose(sreqHigh);
-            } else {
-                snd_data_pkt = Packet::createValidate(sreqHigh);
-                assert(load_inst->vldData);
-                snd_data_pkt->dataStatic(&(load_inst->vldData[1]));
-            }
-
-            data_pkt->senderState = state;
-            data_pkt->setFirst();
-            snd_data_pkt->senderState = state;
-            data_pkt->reqIdx = loadVLDIdx;
-            snd_data_pkt->reqIdx = loadVLDIdx;
-
-            data_pkt->isSplit = true;
-            snd_data_pkt->isSplit = true;
-            state->isSplit = true;
-            state->outstanding = 2;
-            state->mainPkt = data_pkt;
-
-            DPRINTF(LSQUnit, "contextid = %d, %d\n",
-                    sreqLow->contextId(), sreqHigh->contextId());
-            req = sreqLow;
-        }
-
-        assert(!req->isStrictlyOrdered());
-        assert(!req->isMmappedIpr());
-
-        DPRINTF(LSQUnit, "D-Cache: Validating/Exposing load idx:%i PC:%s "
-                "to Addr:%#x, data:%#x [sn:%lli]\n",
-                loadVLDIdx, load_inst->pcState(),
-                //FIXME: resultData not memData
-                req->getPaddr(), (int)*(load_inst->memData),
-                load_inst->seqNum);
-
-        bool successful_expose = true;
-        bool completedFirst = false;
-
-        if (!dcachePort->sendTimingReq(data_pkt)){
-            DPRINTF(IEW, "D-Cache became blocked when "
-                "validating [sn:%lli], will retry later\n",
-                load_inst->seqNum);
-            successful_expose = false;
-        } else {
-            if (split) {
-                // If split, try to send the second packet too
-                completedFirst = true;
-                assert(snd_data_pkt);
-
-                if (!dcachePort->sendTimingReq(snd_data_pkt)){
-                    state->complete();
-                    state->cacheBlocked = true;
-                    successful_expose = false;
-                    DPRINTF(IEW, "D-Cache became blocked when validating"
-                        " [sn:%lli] second packet, will retry later\n",
-                        load_inst->seqNum);
-                }
-            }
-        }
-
-        if (!successful_expose){
-            if (!split) {
-                delete state;
-                delete data_pkt;
-            }else{
-                if (!completedFirst){
-                    delete state;
-                    delete data_pkt;
-                    delete snd_data_pkt;
-                } else {
-                    delete snd_data_pkt;
-                }
-            }
-            //cpu->wakeCPU();
-            ++lsqCacheBlocked;
-            break;
-        } else {
-            // Here is to fix memory leakage
-            // it is ugly, but we have to do it now.
-            load_inst->needDeletePostReq(false);
-
-            // if all the packets we sent out is expose,
-            // we assume the expose is alreay completed
-            if (onlyExpose) {
-                load_inst->setExposeCompleted();
-                numExposes++;
-            } else {
-                numValidates++;
-            }
-            if (load_inst->needExposeOnly()){
-                numConvertedExposes++;
-            }
-            if (load_inst->isExecuted() && load_inst->isExposeCompleted()
-                    && !load_inst->isSquashed()){
-                DPRINTF(LSQUnit, "Expose finished. Execution done."
-                    "Send inst [sn:%lli] to commit stage.\n",
-                    load_inst->seqNum);
-                    //iewStage->instToCommit(load_inst);
-                    //iewStage->activityThisCycle();
-            } else{
-                DPRINTF(LSQUnit, "Need validation or execution not finishes."
-                    "Need to wait for readResp/validateResp "
-                    "for inst [sn:%lli].\n",
-                    load_inst->seqNum);
-            }
-
-            load_inst->setExposeSent();
-            incrLdIdx(loadVLDIdx);
-            if (!split){
-                setSpecBuffState(req);
-            } else {
-                setSpecBuffState(sreqLow);
-                setSpecBuffState(sreqHigh);
-            }
-        }
-    } // while()
-
-    //DPRINTF(LSQUnit, "Send validate/expose for %d insts. loadsToVLD=%d"
-            //". loadHead=%d. loadTail=%d.\n",
-            //old_loadsToVLD-loadsToVLD, loadsToVLD, loadHead,
-            //loadTail);
-
-    //printf("expose loads end: loadsToVLD=%d\n", loadsToVLD);
     assert(loads>=0);
-    //assert(loadsToVLD >= 0);
-
-    //return old_loadsToVLD-loadsToVLD;
     return 0;
 }
 
@@ -1574,11 +1241,7 @@ LSQUnit<Impl>::squash(const InstSeqNum &squashed_num)
             stallingLoadIdx = 0;
         }
 
-        if (loadQueue[load_idx]->needPostFetch() &&
-                loadQueue[load_idx]->readyToExpose() &&
-                !loadQueue[load_idx]->isExposeSent()){
-            loadsToVLD--;
-        }
+        // Akk: needPostFetch false, removed code
 
         // Clear the smart pointer to make sure it is decremented.
         loadQueue[load_idx]->setSquashed();
@@ -1693,45 +1356,8 @@ template <class Impl>
 void
 LSQUnit<Impl>::completeValidate(DynInstPtr &inst, PacketPtr pkt)
 {
-    iewStage->wakeCPU();
-    // if instruction fault, no need to check value,
-    // return directly
-    //assert(!inst->needExposeOnly());
-    if (inst->isExposeCompleted() || inst->isSquashed()){
-        //assert(inst->fault != NoFault);
-        //Already sent to commit, do nothing
-        return;
-    }
-    //Check validation result
-    bool validation_fail = false;
-    if (!inst->isL1HitLow() && inst->vldData[0]==0) {
-        validation_fail = true;
-    } else {
-        if (pkt->isSplit && !inst->isL1HitHigh()
-            && inst->vldData[1]==0){
-            validation_fail = true;
-        }
-    }
-    if (validation_fail){
-        // Mark the load for re-execution
-        inst->fault = std::make_shared<ReExec>();
-        inst->validationFail(true);
-        DPRINTF(LSQUnit, "Validation failed.\n",
-        inst->seqNum);
-    }
-
-    inst->setExposeCompleted();
-    if ( inst->isExecuted() && inst->isExposeCompleted() ){
-        DPRINTF(LSQUnit, "Validation finished. Execution done."
-            "Send inst [sn:%lli] to commit stage.\n",
-            inst->seqNum);
-            //iewStage->instToCommit(inst);
-            //iewStage->activityThisCycle();
-    } else{
-        DPRINTF(LSQUnit, "Validation done. Execution not finishes."
-            "Need to wait for readResp for inst [sn:%lli].\n",
-            inst->seqNum);
-    }
+    //Akk: unused function
+    assert(false);
 }
 
 template <class Impl>
@@ -1781,39 +1407,14 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
     // [mengjia]
     // check schemes to decide whether to set load can be committed
     // on receiving readResp or readSpecResp
-    if(!cpu->isInvisibleSpec){
-        // if not invisibleSpec mode, we only receive readResp
-        assert(!pkt->isSpec() && !pkt->isValidate() &&
-                "Receiving spec or validation response "
-                "in non invisibleSpec mode");
-        iewStage->instToCommit(inst);
-    } else if (inst->fault != NoFault){
-        inst->setExposeCompleted();
-        inst->setExposeSent();
-        iewStage->instToCommit(inst);
-    } else {
-        // cpu->isInvisibleSpec == true
-        if (pkt->isSpec()) {
-            inst->setSpecCompleted();
-        }
 
-        assert(!pkt->isValidate() && "receiving validation response"
-                "in invisibleSpec RC mode");
-        assert(!pkt->isExpose() && "receiving expose response"
-                "on write back path");
-
-        // check whether the instruction can be committed
-        if ( !inst->isExposeCompleted() && inst->needPostFetch() ){
-            DPRINTF(LSQUnit, "Expose not finished. "
-                "Wait until expose completion"
-                " to send inst [sn:%lli] to commit stage\n", inst->seqNum);
-        }else{
-            DPRINTF(LSQUnit, "Expose and execution both finished. "
-                "Send inst [sn:%lli] to commit stage\n", inst->seqNum);
-            //iewStage->instToCommit(inst);
-        }
-        iewStage->instToCommit(inst);
-    }
+    // Akk: removed code specific to invisibleSpec
+    assert(!cpu->isInvisibleSpec);
+    assert(!pkt->isSpec() && !pkt->isValidate() &&
+            "Receiving spec or validation response "
+            "in non invisibleSpec mode");
+    iewStage->instToCommit(inst);
+    
 
     iewStage->activityThisCycle();
 
@@ -1898,7 +1499,7 @@ LSQUnit<Impl>::sendStore(PacketPtr data_pkt)
         retryPkt = data_pkt;
         return false;
     }
-    setSpecBuffState(data_pkt->req);
+    // Akk: removed code, setSpecBuff
     return true;
 }
 
@@ -2029,8 +1630,8 @@ LSQUnit<Impl>::print_lsq() const {
             printf("Issued, ");
         else
             printf("Not Issued, ");
-        printf("argsTainted=%d, readyToExpose=%d, NeedPostFetch=%d, NeedDeletePostReq=%d, ExposeSent=%d, SpecCompleted=%d\n",
-                inst->isArgsTainted(), inst->readyToExpose(), inst->needPostFetch(), inst->needDeletePostReq(), inst->isExposeSent(), inst->isSpecCompleted());
+        printf("argsTainted=%d, readyToExpose=%d, SpecCompleted=%d\n",
+                inst->isArgsTainted(), inst->readyToExpose(), inst->isSpecCompleted());
 
         incrLdIdx(load_idx);
     }
