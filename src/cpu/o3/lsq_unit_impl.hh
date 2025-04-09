@@ -748,7 +748,7 @@ LSQUnit<Impl>::executeLoad(DynInstPtr &inst)
     // use ISA interface to generate correct access request
     // initiateAcc is implemented in dyn_inst_impl.hh
     // The interface calls corresponding ISA defined function
-    // check buld/ARM/arch/generic/memhelper.hh for more info [mengjia]
+    // check build/ARM/arch/generic/memhelper.hh for more info [mengjia]
     load_fault = inst->initiateAcc();
 
     // if translation delay, deferMem [mengjia]

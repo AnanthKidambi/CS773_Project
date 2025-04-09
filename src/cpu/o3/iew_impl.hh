@@ -1206,8 +1206,7 @@ DefaultIEW<Impl>::executeInsts()
     // Execute/writeback any instructions that are available.
     int insts_to_execute = fromIssue->size;
     int inst_num = 0;
-    for (; inst_num < insts_to_execute;
-          ++inst_num) {
+    for (; inst_num < insts_to_execute; ++inst_num) {
 
         DPRINTF(IEW, "Execute: Executing instructions from IQ.\n");
 

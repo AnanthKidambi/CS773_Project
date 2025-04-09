@@ -1104,7 +1104,7 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
 {
     // [SafeSpec] do not start translation if
     // there is a virtual fence ahead
-    assert(!fenceDelay());
+    assert(!fenceDelay() && readyToExpose());
 
     if ( (flags.isSet(Request::ATOMIC_RETURN_OP)
             || flags.isSet(Request::ATOMIC_NO_RETURN_OP)
@@ -1151,17 +1151,7 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
         // in the case the read is squashed and the request
         // is never sent out due to a virtual fence ahead
         if (fault == NoFault) {
-            //if (fenceDelay()){
-                //translationStarted(false);
-                //translationCompleted(false);
-                //onlyWaitForFence(true);
-                //delete req;
-                //if (sreqLow){
-                    //delete sreqLow;
-                    //delete sreqHigh;
-                //}
-                //return NoFault;
-            //}
+            // Akk: removed code
             effAddr = req->getVaddr();
             effSize = size;
             instFlags[EffAddrValid] = true;

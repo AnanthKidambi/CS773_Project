@@ -1559,6 +1559,7 @@ InstructionQueue<Impl>::addIfReady(DynInstPtr &inst)
             // [Jiyong, STT]: if ready but tainted, we put it in stallList
             assert (inst->isArgsTainted());
             if (!inst->isInStallList()) {
+                assert(!(inst->isLoad() || inst->isStore())); // stalled list should not contain loads/stores, is only for moreTransmitInsts
                 inst->addToStallList();
                 stalledTaintedInstList[inst->threadNumber].push_back(inst);
                 instsStalledBeforeSetReady++;
