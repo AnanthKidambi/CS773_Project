@@ -1226,7 +1226,16 @@ InstructionQueue<Impl>::getDeferredMemInstToExecute()
                 || ((*it)->onlyWaitForFence() && !(*it)->fenceDelay())
                 ) {
             DynInstPtr mem_inst = *it;
-            mem_inst->onlyWaitForFence(false);
+            // Akk[DOPP]: don't issue doppelganger after doppelganger translation completes
+            if ((mem_inst->fenceDelay() || mem_inst->isDOPPLoadExecuting()) && 
+                 mem_inst->hasDOPPTranslationCompleted()
+            ) {
+                continue;
+            }
+            // Akk[DOPP]: If it is not doppelganger/doppelganger has finished executing - 
+            if (!mem_inst->isDOPPLoadExecuting()){
+                mem_inst->onlyWaitForFence(false);
+            }
             // Akk: removed code
             deferredMemInsts.erase(it);
             return mem_inst;

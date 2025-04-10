@@ -168,6 +168,8 @@ class DerivO3CPU(BaseCPU):
     # [Jiyong, STT] STT configurations
     threatModel = Param.String('UnsafeBaseline', "The threat model specificed for simulation")
     STT = Param.Bool(False, "Apply STT protection mechanism")
+    # Akk: DOPP option
+    DOPP = Param.Bool(False, "Apply DOPP optimization for STT protection")
     implicitChannel = Param.Bool(False, "If handling implicit channel")
     ifPrintROB = Param.Bool(False, "If print all ROBs with DDIFT info")
     moreTransmitInsts = Param.Int(0, "More transmit instruction types")

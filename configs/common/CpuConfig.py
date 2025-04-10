@@ -95,8 +95,8 @@ def config_scheme(cpu_cls, cpu_list, options):
                 "to run simulation with DerivO3CPU")
 
         print "**********"
-        print "info: Configure for DerivO3CPU. needsTSO=%d; threat_model=%s; STT=%d; implicit_channel=%d; moreTransmitInsts=%d, printROB=%d"\
-            % (options.needsTSO, options.threat_model, options.STT, options.implicit_channel, options.moreTransmitInsts, options.ifPrintROB)
+        print "info: Configure for DerivO3CPU. needsTSO=%d; threat_model=%s; STT=%d; DOPP=%d; implicit_channel=%d; moreTransmitInsts=%d, printROB=%d"\
+            % (options.needsTSO, options.threat_model, options.STT, options.DOPP, options.implicit_channel, options.moreTransmitInsts, options.ifPrintROB)
         print "**********"
         for cpu in cpu_list:
             if options.needsTSO:
@@ -111,6 +111,14 @@ def config_scheme(cpu_cls, cpu_list, options):
                 cpu.STT = True;
             else:
                 cpu.STT = False;
+                
+            if options.DOPP:
+                if not cpu.STT:
+                    print "STT must be enabled to enable DOPP"
+                    fatal("STT must be enabled to enable DOPP")
+                cpu.DOPP = True;
+            else:
+                cpu.DOPP = False;
 
             if options.implicit_channel:
                 cpu.implicitChannel = True;

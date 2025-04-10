@@ -303,6 +303,8 @@ def addCommonOptions(parser):
     # [Jiyong,DDIFT] add options for DDIFT configurations
     parser.add_option("--STT", default=None, action="store", type="int",
             help="Whether using STT mechanism(threat_model mustn't be Unsafe.")
+    parser.add_option("--DOPP", default=None, action="store", type="int",
+            help="Whether using DOPP optimization(STT should be enabled).")
     parser.add_option("--implicit_channel", default=None, action="store", type="int",
             help="Whether enabling defense mechanism for implicit channel")
     parser.add_option("--ifPrintROB", default=None, action="store", type="int",

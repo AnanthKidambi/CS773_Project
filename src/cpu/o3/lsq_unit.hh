@@ -609,6 +609,9 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
     // A bit of a hackish way to get strictly ordered accesses to work
     // only if they're at the head of the LSQ and are ready to commit
     // (at the head of the ROB too).
+    // Akk[DOPP] we are ignoring strictly ordered, llsc, and MmappedIpr
+    assert(!cpu->DOPP || !(req->isStrictlyOrdered() || req->isLLSC() ||
+                           req->isMmappedIpr()));
     if (req->isStrictlyOrdered() &&
         (load_idx != loadHead || !load_inst->isAtCommit())) {
         iewStage->rescheduleMemInst(load_inst);
@@ -733,7 +736,32 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
         if (store_has_lower_limit && store_has_upper_limit && !req->isLLSC()) {
             // we DO Forwarding
             /***** [Jiyong, STT] if store addr is tainted, load addr is untainted, we still needs to issue a normal load without writeback" **/
-            if (cpu->STT && cpu->impChannel && (storeQueue[store_idx].inst->isAddrTainted() && !load_inst->isAddrTainted())) {
+            // Akk[DOPP]: verify that non-doppelganger load isn't tainted
+            assert(!load_inst->isAddrTainted() || (load_inst->isDOPPLoadExecuting() && cpu->DOPP));
+            // Akk[DOPP]: if it is a doppelganger load, issue a dummy load even if forwarding is possible
+            if (cpu->DOPP && load_inst->isDOPPLoadExecuting()){
+                int shift_amt = req->getVaddr() - storeQueue[store_idx].inst->effAddr;
+
+                // Allocate memory if this is the first time a load is issued.
+                if (!load_inst->doppStFwdData) {
+                    load_inst->doppStFwdData = new uint8_t[req->getSize()];
+                    load_inst->doppStFwdDataSize = req->getSize();
+                }
+                if (storeQueue[store_idx].isAllZeros)
+                    memset(load_inst->doppStFwdData, 0, req->getSize());
+                else
+                    memcpy(load_inst->doppStFwdData,
+                        storeQueue[store_idx].data + shift_amt, req->getSize());
+
+                DPRINTF(LSQUnit, "Forwarding from store idx %i to doppelganger load to "
+                        "addr %#x\n", store_idx, req->getVaddr());
+                DPRINTF(LSQUnit, "Still need dummy load to hide tainted address of store");
+
+                load_inst->DOPPAlreadyForwarded = true;
+
+                break;
+            }
+            else if (cpu->STT && cpu->impChannel && (storeQueue[store_idx].inst->isAddrTainted())) {
                 /*
                  * here we do ld-st forwarding. But since store address is tainted, we also launch normal load afterwards
                  */
@@ -811,6 +839,23 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
 
             // If it's already been written back, then don't worry about
             // stalling on it.
+
+            // Akk[DOPP]: kill the doppelganger load in this case
+            if (cpu->DOPP && load_inst->isDOPPLoadExecuting()){
+                load_inst->isDOPPLoadExecuting(false);
+                load_inst->isDOPPLoadSuccess(false);
+                load_inst->hasDOPPFinished(true);
+                load_inst->resetDOPP();
+
+                delete req;
+                if (TheISA::HasUnalignedMemAcc && sreqLow) {
+                    delete sreqLow;
+                    delete sreqHigh;
+                }
+
+                return NoFault;
+            }
+
             if (storeQueue[store_idx].completed) {
                 panic("Should not check one of these");
                 continue;
@@ -860,8 +905,38 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
     if (!load_inst->memData) {
         load_inst->memData = new uint8_t[req->getSize()];
     }
+    // Akk[DOPP]: allocate memory for doppelganger load
+    if (!load_inst->doppMemData) {
+        load_inst->doppMemData = new uint8_t[req->getSize()];
+    }
 
-    // if we the cache is not blocked, do cache access
+    // Akk[DOPP]: use data from doppelganger load if it is successful and the predicted address is correct.
+    assert(load_inst->isDOPPPredCorrect());
+    if (load_inst->isDOPPPredCorrect() && load_inst->isDOPPLoadSuccess()){
+        assert(!load_inst->isDOPPLoadExecuting());
+        memcpy(load_inst->memData, load_inst->doppMemData, req->getSize());
+
+        PacketPtr data_pkt = new Packet(req, MemCmd::ReadReq);
+        data_pkt->dataStatic(load_inst->memData);
+
+        WritebackEvent *wb = new WritebackEvent(load_inst, data_pkt, this);
+
+        // We'll say this has a 1 cycle load-store forwarding latency
+        // for now.
+        // @todo: Need to make this a parameter.
+        cpu->schedule(wb, curTick());
+
+        // Don't need to do anything special for split loads.
+        if (TheISA::HasUnalignedMemAcc && sreqLow) {
+            delete sreqLow;
+            delete sreqHigh;
+        }
+
+        return NoFault;
+    }
+
+
+    // if the cache is not blocked, do cache access
     bool completedFirst = false;
 
     PacketPtr data_pkt = NULL;
@@ -871,19 +946,15 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
     // Akk: removed code, setting sendSpecRead to false since !cpu->isInvisibleSpec
     assert(!cpu->isInvisibleSpec);
 
-    bool sendSpecRead = false;
+    // Akk[DOPP]: copy data to doppMemData if the load is a doppelganger load
+    uint8_t *target_data_ptr = (load_inst->isDOPPLoadExecuting()) ? 
+        load_inst->doppMemData : load_inst->memData;
+
     // Akk: removed code, refer to old code for initializing sendSpecRead
-    
-    assert( !(sendSpecRead && load_inst->isSpecCompleted()) &&
-            "Sending specRead twice for the same load insts");
+    data_pkt = Packet::createRead(req);
 
-    if(sendSpecRead){
-        data_pkt = Packet::createReadSpec(req);
-    } else {
-        data_pkt = Packet::createRead(req);
-    }
-
-    data_pkt->dataStatic(load_inst->memData);
+    // data_pkt->dataStatic(load_inst->memData);
+    data_pkt->dataStatic(target_data_ptr);
 
     LSQSenderState *state = new LSQSenderState;
     state->isLoad = true;
@@ -896,54 +967,21 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
         fst_data_pkt = data_pkt;
 
         fst_data_pkt->setFirst();
-        if (sendSpecRead){
-            // int src_idx = checkSpecBuffHit(req, load_idx);
-            // if (src_idx != -1) {
-            //     if (cpu->allowSpecBufHit){
-            //         data_pkt->setOnlyAccessSpecBuff();
-            //     }
-            //     data_pkt->srcIdx = src_idx;
-            //     specBuffHits++;
-            // }else{
-            //     specBuffMisses++;
-            // }
-        }
+        //Akk[DOPP]: removed code
         fst_data_pkt->reqIdx = load_idx;
     } else {
         // Create the split packets.
-        if(sendSpecRead){
 
-            // fst_data_pkt = Packet::createReadSpec(sreqLow);
-            // int fst_src_idx = checkSpecBuffHit(sreqLow, load_idx);
-            // if ( fst_src_idx != -1 ) {
-            //     if (cpu->allowSpecBufHit){
-            //         fst_data_pkt->setOnlyAccessSpecBuff();
-            //     }
-            //     fst_data_pkt->srcIdx = fst_src_idx;
-            //     specBuffHits++;
-            // } else {
-            //     specBuffMisses++;
-            // }
-
-            // snd_data_pkt = Packet::createReadSpec(sreqHigh);
-            // int snd_src_idx = checkSpecBuffHit(sreqHigh, load_idx);
-            // if ( snd_src_idx != -1 ) {
-            //     if (cpu->allowSpecBufHit){
-            //         snd_data_pkt->setOnlyAccessSpecBuff();
-            //     }
-            //     snd_data_pkt->srcIdx = snd_src_idx;
-            //     specBuffHits++;
-            // } else {
-            //     specBuffMisses++;
-            // }
-        } else {
-            fst_data_pkt = Packet::createRead(sreqLow);
-            snd_data_pkt = Packet::createRead(sreqHigh);
-        }
+        // Akk[DOPP]: removed code
+        
+        fst_data_pkt = Packet::createRead(sreqLow);
+        snd_data_pkt = Packet::createRead(sreqHigh);
 
         fst_data_pkt->setFirst();
-        fst_data_pkt->dataStatic(load_inst->memData);
-        snd_data_pkt->dataStatic(load_inst->memData + sreqLow->getSize());
+        // fst_data_pkt->dataStatic(load_inst->memData);
+        // snd_data_pkt->dataStatic(load_inst->memData + sreqLow->getSize());
+        fst_data_pkt->dataStatic(target_data_ptr);
+        snd_data_pkt->dataStatic(target_data_ptr + sreqLow->getSize());
 
         fst_data_pkt->senderState = state;
         snd_data_pkt->senderState = state;
@@ -1019,10 +1057,23 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
             }
         }
 
-        ++lsqCacheBlocked;
-        load_inst->alreadyForwarded = false;
-
-        iewStage->blockMemInst(load_inst);
+        // Akk[DOPP]: kick the doppelganger load if blocking occurs(for the sake of simplicity)
+        // If the first half goes through and the second half fails, then handle in completeDataAccess
+        if (cpu->DOPP && load_inst->isDOPPLoadExecuting()){
+            if (!completedFirst){
+                load_inst->isDOPPLoadExecuting(false);
+                load_inst->isDOPPLoadSuccess(false);
+                load_inst->hasDOPPFinished(true);
+                load_inst->resetDOPP();
+            }
+            load_inst->DOPPAlreadyForwarded = false;
+        }
+        else {
+            ++lsqCacheBlocked;
+            load_inst->alreadyForwarded = false;
+    
+            iewStage->blockMemInst(load_inst);
+        }
 
         // No fault occurred, even though the interface is blocked.
         return NoFault;
@@ -1034,9 +1085,11 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
     // Set everything ready for expose/validation after the read is
     // successfully sent out
     // Akk: deleted code
-    assert(!sendSpecRead);
     
-    load_inst->setExposeCompleted();
+    // Akk[DOPP]
+    if (!load_inst->isDOPPLoadExecuting()){
+        load_inst->setExposeCompleted();
+    }
     // Akk: needPostFetch false, removed code
 
     return NoFault;

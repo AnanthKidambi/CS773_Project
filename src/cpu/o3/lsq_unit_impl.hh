@@ -108,19 +108,21 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
         // This is the first half of a previous split load,
         // where the 2nd half blocked, ignore this response
         DPRINTF(IEW, "[sn:%lli]: Response from first half of earlier "
-                "blocked split load recieved. Ignoring.\n", inst->seqNum);
-        delete state;
+            "blocked split load recieved. Ignoring.\n", inst->seqNum);
+            delete state;
+        // Akk[DOPP]: if this corresponds to a doppelganger load, then set doppelganger success to false
+        if (cpu->DOPP && inst->isDOPPLoadExecuting()){
+            inst->isDOPPLoadExecuting(false);
+            inst->isDOPPLoadSuccess(false);
+            inst->hasDOPPFinished(true);
+            inst->resetDOPP();
+        }
         return;
     }
 
+    assert(!pkt->isSpec());
     // need to update hit info for corresponding instruction
-    if (pkt->isL1Hit() && pkt->isSpec() && pkt->isRead()){
-        if (state->isSplit && ! pkt->isFirst()){
-            inst->setL1HitHigh();
-        } else {
-            inst->setL1HitLow();
-        }
-    }
+    // Akk: removed code, isSpec
     // Akk: removed code, setSpecBuff
 
     // If this is a split access, wait until all packets are received.
@@ -136,7 +138,6 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
         if (!state->noWB) {
             // Only loads and store conditionals perform the writeback
             // after receving the response from the memory
-            // [mengjia] validation also needs writeback, expose do not need
             assert(inst->isLoad() || inst->isStoreConditional());
 
             if (!TheISA::HasUnalignedMemAcc || !state->isSplit ||
@@ -751,11 +752,33 @@ LSQUnit<Impl>::executeLoad(DynInstPtr &inst)
     // check build/ARM/arch/generic/memhelper.hh for more info [mengjia]
     load_fault = inst->initiateAcc();
 
+    assert(inst->isTranslationDelayed() || inst->translationCompleted());
+    // Akk[DOPP]
+    if (inst->isDOPPLoadExecuting()){
+        // Akk[DOPP]: faulty doppelganger, do not re-execute.
+        if (load_fault != NoFault){
+            inst->isDOPPLoadExecuting(false);
+            inst->isDOPPLoadSuccess(false);
+            inst->hasDOPPFinished(true);
+            inst->hasDOPPTranslationCompleted(false);
+            inst->resetDOPP();
+            return load_fault;
+        }
+        else if (inst->translationCompleted()){
+            assert(!inst->hasDOPPTranslationCompleted());
+            inst->hasDOPPTranslationCompleted(true);
+            return load_fault;
+        }
+        else {
+            return load_fault;
+        }
+    }
+
     // if translation delay, deferMem [mengjia]
     // in the case it is not the correct time to send the load
     // also defer it
-    if ( (inst->isTranslationDelayed() || inst->fenceDelay()
-                || inst->specTLBMiss()) &&
+    // Akk: return if dopp load issue succeeds
+    if ((inst->isTranslationDelayed() || inst->fenceDelay() || inst->specTLBMiss()) &&
         load_fault == NoFault)
         return load_fault;
 
@@ -1373,24 +1396,36 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
         return;
     }
 
-    //DPRINTF(LSQUnit, "write back for inst [sn:%lli]\n", inst->seqNum);
     assert(!(inst->isExecuted() && inst->isExposeCompleted() &&
                 inst->fault==NoFault) &&
             "in this case, we will put it into ROB twice.");
 
     if (!inst->isExecuted()) {
-        inst->setExecuted();
+        if(!inst->isDOPPLoadExecuting()){
+            inst->setExecuted();
+        }
 
         if (inst->fault == NoFault) {
-            // Jiyong, STT: writeback forwarded data
-            if (inst->alreadyForwarded) {
-                ++lsqForwLoads;
-                ++taintedlsqForwLoads;
-                assert(cpu->STT && cpu->impChannel);
-                memcpy(inst->memData, inst->stFwdData, inst->stFwdDataSize);
+            // Akk[DOPP]: writeback store-forwarded dopp dat
+            if (inst->isDOPPLoadExecuting()){
+                if (inst->DOPPAlreadyForwarded){
+                    assert(cpu->STT && cpu->impChannel && cpu->DOPP);
+                    memcpy(inst->doppMemData, inst->doppStFwdData, inst->doppStFwdDataSize);
+                    delete inst->doppStFwdData;
+                    inst->doppStFwdData = NULL;
+                }
             }
-            // Complete access to copy data to proper place.
-            inst->completeAcc(pkt);
+            // Jiyong, STT: writeback forwarded data
+            else{
+                if (inst->alreadyForwarded) {
+                    ++lsqForwLoads;
+                    ++taintedlsqForwLoads;
+                    assert(cpu->STT && cpu->impChannel);
+                    memcpy(inst->memData, inst->stFwdData, inst->stFwdDataSize);
+                }
+                // Complete access to copy data to proper place.
+                inst->completeAcc(pkt);
+            }
         } else {
             // If the instruction has an outstanding fault, we cannot complete
             // the access as this discards the current fault.
@@ -1413,13 +1448,25 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
     assert(!pkt->isSpec() && !pkt->isValidate() &&
             "Receiving spec or validation response "
             "in non invisibleSpec mode");
-    iewStage->instToCommit(inst);
     
-
+    // Akk[DOPP]
+    if(!inst->isDOPPLoadExecuting()) {
+        iewStage->instToCommit(inst);
+    }
     iewStage->activityThisCycle();
-
+    
     // see if this load changed the PC
-    iewStage->checkMisprediction(inst);
+    if (!inst->isDOPPLoadExecuting()){
+        iewStage->checkMisprediction(inst);
+    }
+
+    // Akk[DOPP]: set DOPP flags
+    if (inst->isDOPPLoadExecuting()){
+        inst->isDOPPLoadExecuting(false);
+        inst->isDOPPLoadSuccess(inst->fault == NoFault);
+        inst->hasDOPPFinished(true);
+        inst->resetDOPP();
+    }
 }
 
 // set store to complete [mengjia]

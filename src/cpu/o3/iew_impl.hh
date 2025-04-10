@@ -1258,9 +1258,17 @@ DefaultIEW<Impl>::executeInsts()
                 // if !loadInExec, need to check whether there
                 // is a virtual fence ahead
                 // --> if existing virtual fence, defer
-                if (inst->fenceDelay()){
+                // Akk[DOPP]: allow doppenlganger load to execute even if the original instruction is tainted
+                if (inst->fenceDelay() || inst->isDOPPLoadExecuting()){
                     DPRINTF(IEW, "Deferring load due to virtual fence.\n");
                     inst->onlyWaitForFence(true);
+                    // Akk[DOPP]: do the doppelganger load
+                    if (cpu->DOPP) {
+                        inst->isDOPPLoadExecuting(true);
+                        ldstQueue.executeLoad(inst); // we don't care about faults for 
+                    }
+                    // Akk[DOPP]: we will reset all the load flags after the doppelganger 
+                    // load finishes inside executeLoad, allowing us to do the actual load in a clean fashion. 
                     instQueue.deferMemInst(inst);
 
                     continue;
@@ -1495,6 +1503,7 @@ template<class Impl>
 void
 DefaultIEW<Impl>::tick()
 {
+    assert(cpu->DOPP);
     wbNumInst = 0;
     wbCycle = 0;
 

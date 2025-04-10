@@ -819,6 +819,10 @@ class FullO3CPU : public BaseO3CPU
     // whether to apply STT
     bool STT;
 
+    // Akk: new option
+    // whether to enable doppelganger loads
+    bool DOPP;
+
     // whether add implicit flow protection
     bool impChannel;
 

@@ -183,6 +183,11 @@ class BaseDynInst : public ExecContext, public RefCounted
         HasExplicitFlow,
         HasImplicitFlow,
         HasPendingSquash,   // for branch/load, if a squash is postponed due to the tainted dependent operands
+        // Akk[DOPP]: flags for DOPP
+        IsDOPPLoadExecuting, 
+        IsDOPPLoadSuccess,
+        DOPPFinished,
+        DOPPTranslationCompleted,
         MaxFlags
     };
 
@@ -269,6 +274,9 @@ class BaseDynInst : public ExecContext, public RefCounted
     /** Pointer to the data for the memory access. */
     uint8_t *memData;
 
+    // Akk[DOPP] Pointer to the data for the doppelganger load memory access
+    uint8_t *doppMemData;
+
     /** Pointer to the data for the validation result. */
     uint8_t *vldData;
 
@@ -283,8 +291,15 @@ class BaseDynInst : public ExecContext, public RefCounted
     uint8_t *stFwdData;
     int      stFwdDataSize;
 
+    // Akk[DOPP]: pointer to the data forwarded from store for doppelganger load
+    uint8_t *doppStFwdData;
+    int      doppStFwdDataSize;
+
     /** If load-store forwarding happens but need extra dummy load **/
     bool alreadyForwarded;
+
+    // Akk[DOPP]
+    bool DOPPAlreadyForwarded;
 
 
 
@@ -396,8 +411,26 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool notAnInst() const { return instFlags[NotAnInst]; }
     void setNotAnInst() { instFlags[NotAnInst] = true; }
 
+    // Akk[DOPP]: getters and setters for DOPP
+    bool isDOPPLoadExecuting() const { return instFlags[IsDOPPLoadExecuting]; }
+    void isDOPPLoadExecuting(bool f) { instFlags[IsDOPPLoadExecuting] = f; }
 
+    bool isDOPPLoadSuccess() const { return instFlags[IsDOPPLoadSuccess]; }
+    void isDOPPLoadSuccess(bool f) { instFlags[IsDOPPLoadSuccess] = f; }
 
+    bool hasDOPPFinished() const { return instFlags[DOPPFinished]; }
+    void hasDOPPFinished(bool f) { instFlags[DOPPFinished] = f; }
+
+    bool hasDOPPTranslationCompleted() const { return instFlags[DOPPTranslationCompleted]; }
+    void hasDOPPTranslationCompleted(bool f) { instFlags[DOPPTranslationCompleted] = f; }
+
+    bool isDOPPPredCorrect() const { return true; }
+
+    void resetDOPP(){
+        // call before doing the actual load after DOPP 
+        translationStarted(false);
+        translationCompleted(false);
+    }
 
     ////////////////////////////////////////////
     //
@@ -1104,20 +1137,24 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
 {
     // [SafeSpec] do not start translation if
     // there is a virtual fence ahead
-    assert(!fenceDelay() && readyToExpose());
+    // Akk[DOPP]: if tainted, has to be a doppelganger load
+    assert((!fenceDelay() || isDOPPLoadExecuting()) && readyToExpose());
 
-    if ( (flags.isSet(Request::ATOMIC_RETURN_OP)
-            || flags.isSet(Request::ATOMIC_NO_RETURN_OP)
-            || flags.isSet(Request::UNCACHEABLE)
-            || flags.isSet(Request::LLSC)
-            || flags.isSet(Request::STRICT_ORDER))
-            && !readyToExpose()){
-        // Akk: removed code
-        // FIXME: reschedule due to LLSC
-        // reuse TLBMiss for now
-        specTLBMiss(true);
-        return NoFault;
-    }
+    // Akk: commented unexecutable code
+    // if ( (flags.isSet(Request::ATOMIC_RETURN_OP)
+    //         || flags.isSet(Request::ATOMIC_NO_RETURN_OP)
+    //         || flags.isSet(Request::UNCACHEABLE)
+    //         || flags.isSet(Request::LLSC)
+    //         || flags.isSet(Request::STRICT_ORDER))
+    //         && !readyToExpose()){
+    //     // Akk: removed code
+    //     // FIXME: reschedule due to LLSC
+    //     // reuse TLBMiss for now
+    //     // Akk: unreachable code
+    //     assert(false);
+    //     specTLBMiss(true);
+    //     return NoFault;
+    // }
 
     instFlags[ReqMade] = true;
     instFlags[SpecTLBMiss] = false;
@@ -1134,14 +1171,15 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
                           thread->contextId());
 
         req->taskId(cpu->taskId());
-        if(!readyToExpose()){
-            req->setFlags(Request::SPEC);
-        }
+        // Akk: commented unexecutable code
+        // if(!readyToExpose()){
+        //     req->setFlags(Request::SPEC);
+        // }
         // Only split the request if the ISA supports unaligned accesses.
         if (TheISA::HasUnalignedMemAcc) {
             splitRequest(req, sreqLow, sreqHigh);
         }
-
+        // Akk[DOPP]: TODO: use the translation of doppelganger load if the address is the same
         initiateTranslation(req, sreqLow, sreqHigh, NULL, BaseTLB::Read);
 
     }
@@ -1171,17 +1209,21 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
 
             // [SafeSpec] If it is a fault on translating a spec load
             // Defer it and retry when it is ready to expose
-            if (!readyToExpose()){
-                translationStarted(false);
-                translationCompleted(false);
-                // Akk: removed code
-                specTLBMiss(true);
-                return NoFault;
-            }
+            // Akk: commented unexecutable code
+            // if (!readyToExpose()){
+            //     translationStarted(false);
+            //     translationCompleted(false);
+            //     // Akk: removed code
+            //     specTLBMiss(true);
+            //     return NoFault;
+            // }
             // set it as executed and fault flag.
             // when it enters ROB and try to commit,
             // the commit stage will squash this inst [mengjia]
-            this->setExecuted();
+            // Akk[DOPP]: don't set DOPP loads' execute status here
+            if(!isDOPPLoadExecuting()){
+                this->setExecuted();
+            }
         }
     }
 
