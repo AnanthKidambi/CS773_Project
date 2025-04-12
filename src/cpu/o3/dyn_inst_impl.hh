@@ -160,6 +160,27 @@ BaseO3DynInst<Impl>::initiateAcc()
     return this->fault;
 }
 
+// Akk[DOPP]
+template <class Impl>
+Fault
+BaseO3DynInst<Impl>::initiateDOPPAcc()
+{
+    // @todo: Pretty convoluted way to avoid squashing from happening
+    // when using the TC during an instruction's execution
+    // (specifically for instructions that have side-effects that use
+    // the TC).  Fix this.
+    bool no_squash_from_TC = this->thread->noSquashFromTC;
+    this->thread->noSquashFromTC = true;
+
+    Fault old_fault = this->fault;
+    Fault fault = this->staticInst->initiateAcc(this, this->traceData);
+    this->fault = old_fault;
+
+    this->thread->noSquashFromTC = no_squash_from_TC;
+
+    return fault;
+}
+
 template <class Impl>
 Fault
 BaseO3DynInst<Impl>::completeAcc(PacketPtr pkt)

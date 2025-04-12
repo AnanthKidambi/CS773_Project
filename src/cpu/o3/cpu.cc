@@ -451,6 +451,12 @@ FullO3CPU<Impl>::FullO3CPU(DerivO3CPUParams *params)
         assert (protectionEnabled);
     if (impChannel)
         assert (STT);
+    
+    // Akk[DOPP]
+    DOPP = params->DOPP;
+    if (DOPP){
+        assert(STT);
+    }
 
     assert (moreTransmitInsts >= 0 && moreTransmitInsts <= 2);
 }

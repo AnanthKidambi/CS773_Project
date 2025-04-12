@@ -737,7 +737,7 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
             // we DO Forwarding
             /***** [Jiyong, STT] if store addr is tainted, load addr is untainted, we still needs to issue a normal load without writeback" **/
             // Akk[DOPP]: verify that non-doppelganger load isn't tainted
-            assert(!load_inst->isAddrTainted() || (load_inst->isDOPPLoadExecuting() && cpu->DOPP));
+            assert(!load_inst->fenceDelay() || (load_inst->isDOPPLoadExecuting() && cpu->DOPP));
             // Akk[DOPP]: if it is a doppelganger load, issue a dummy load even if forwarding is possible
             if (cpu->DOPP && load_inst->isDOPPLoadExecuting()){
                 int shift_amt = req->getVaddr() - storeQueue[store_idx].inst->effAddr;
@@ -953,6 +953,7 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
     // Akk: removed code, refer to old code for initializing sendSpecRead
     data_pkt = Packet::createRead(req);
 
+    // Akk[DOPP]
     // data_pkt->dataStatic(load_inst->memData);
     data_pkt->dataStatic(target_data_ptr);
 
@@ -978,6 +979,7 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
         snd_data_pkt = Packet::createRead(sreqHigh);
 
         fst_data_pkt->setFirst();
+        // Akk[DOPP]
         // fst_data_pkt->dataStatic(load_inst->memData);
         // snd_data_pkt->dataStatic(load_inst->memData + sreqLow->getSize());
         fst_data_pkt->dataStatic(target_data_ptr);

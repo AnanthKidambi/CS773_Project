@@ -188,6 +188,7 @@ class BaseDynInst : public ExecContext, public RefCounted
         IsDOPPLoadSuccess,
         DOPPFinished,
         DOPPTranslationCompleted,
+        DOPPDbg,
         MaxFlags
     };
 
@@ -275,7 +276,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     uint8_t *memData;
 
     // Akk[DOPP] Pointer to the data for the doppelganger load memory access
-    uint8_t *doppMemData;
+    uint8_t *doppMemData = nullptr;
 
     /** Pointer to the data for the validation result. */
     uint8_t *vldData;
@@ -292,7 +293,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     int      stFwdDataSize;
 
     // Akk[DOPP]: pointer to the data forwarded from store for doppelganger load
-    uint8_t *doppStFwdData;
+    uint8_t *doppStFwdData = nullptr;
     int      doppStFwdDataSize;
 
     /** If load-store forwarding happens but need extra dummy load **/
@@ -423,6 +424,9 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     bool hasDOPPTranslationCompleted() const { return instFlags[DOPPTranslationCompleted]; }
     void hasDOPPTranslationCompleted(bool f) { instFlags[DOPPTranslationCompleted] = f; }
+    
+    bool getDOPPDbg() const { return instFlags[DOPPDbg]; }
+    void setDOPPDbg(bool f) { instFlags[DOPPDbg] = f; }
 
     bool isDOPPPredCorrect() const { return true; }
 
@@ -1221,7 +1225,14 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
             // when it enters ROB and try to commit,
             // the commit stage will squash this inst [mengjia]
             // Akk[DOPP]: don't set DOPP loads' execute status here
-            if(!isDOPPLoadExecuting()){
+            if (isDOPPLoadExecuting()){
+                isDOPPLoadExecuting(false);
+                isDOPPLoadSuccess(false);
+                hasDOPPFinished(true);
+                hasDOPPTranslationCompleted(true);
+                resetDOPP();
+            }
+            else {
                 this->setExecuted();
             }
         }

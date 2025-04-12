@@ -1265,7 +1265,7 @@ DefaultIEW<Impl>::executeInsts()
                     // Akk[DOPP]: do the doppelganger load
                     if (cpu->DOPP) {
                         inst->isDOPPLoadExecuting(true);
-                        ldstQueue.executeLoad(inst); // we don't care about faults for 
+                        ldstQueue.executeLoad(inst); // we don't care about faults for
                     }
                     // Akk[DOPP]: we will reset all the load flags after the doppelganger 
                     // load finishes inside executeLoad, allowing us to do the actual load in a clean fashion. 
@@ -1503,7 +1503,6 @@ template<class Impl>
 void
 DefaultIEW<Impl>::tick()
 {
-    assert(cpu->DOPP);
     wbNumInst = 0;
     wbCycle = 0;
 

@@ -746,22 +746,21 @@ LSQUnit<Impl>::executeLoad(DynInstPtr &inst)
 
     assert(!inst->isSquashed());
 
-    // use ISA interface to generate correct access request
-    // initiateAcc is implemented in dyn_inst_impl.hh
-    // The interface calls corresponding ISA defined function
-    // check build/ARM/arch/generic/memhelper.hh for more info [mengjia]
-    load_fault = inst->initiateAcc();
-
-    assert(inst->isTranslationDelayed() || inst->translationCompleted());
+    // assert(inst->isTranslationDelayed() || inst->translationCompleted());
     // Akk[DOPP]
     if (inst->isDOPPLoadExecuting()){
-        // Akk[DOPP]: faulty doppelganger, do not re-execute.
+        load_fault = inst->initiateDOPPAcc();
+        if (!inst->isDOPPLoadExecuting()){
+            return load_fault;
+        }
         if (load_fault != NoFault){
+            // Akk[DOPP]: faulty doppelganger, do not re-execute.
             inst->isDOPPLoadExecuting(false);
             inst->isDOPPLoadSuccess(false);
             inst->hasDOPPFinished(true);
             inst->hasDOPPTranslationCompleted(false);
             inst->resetDOPP();
+            inst->setDOPPDbg(true);
             return load_fault;
         }
         else if (inst->translationCompleted()){
@@ -773,6 +772,12 @@ LSQUnit<Impl>::executeLoad(DynInstPtr &inst)
             return load_fault;
         }
     }
+
+    // use ISA interface to generate correct access request
+    // initiateAcc is implemented in dyn_inst_impl.hh
+    // The interface calls corresponding ISA defined function
+    // check build/ARM/arch/generic/memhelper.hh for more info [mengjia]
+    load_fault = inst->initiateAcc();
 
     // if translation delay, deferMem [mengjia]
     // in the case it is not the correct time to send the load
@@ -1411,7 +1416,7 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
                 if (inst->DOPPAlreadyForwarded){
                     assert(cpu->STT && cpu->impChannel && cpu->DOPP);
                     memcpy(inst->doppMemData, inst->doppStFwdData, inst->doppStFwdDataSize);
-                    delete inst->doppStFwdData;
+                    delete[] inst->doppStFwdData;
                     inst->doppStFwdData = NULL;
                 }
             }

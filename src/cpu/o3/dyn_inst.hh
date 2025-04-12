@@ -102,6 +102,10 @@ class BaseO3DynInst : public BaseDynInst<Impl>
     /** Initiates the access.  Only valid for memory operations. */
     Fault initiateAcc();
 
+    // Akk[DOPP] Same as initiateAcc, but doesn't set fault 
+    /** Initiates the access.  Only valid for memory operations. */
+    Fault initiateDOPPAcc();
+
     /** Completes the access.  Only valid for memory operations. */
     Fault completeAcc(PacketPtr pkt);
 

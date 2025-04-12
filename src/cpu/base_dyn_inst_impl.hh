@@ -106,6 +106,9 @@ BaseDynInst<Impl>::initVars()
     instFlags[HasPendingSquash] = false;
     alreadyForwarded = false;
 
+    // Akk[DOPP]
+    DOPPAlreadyForwarded = false;
+
     lqIdx = -1;
     sqIdx = -1;
 

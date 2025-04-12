@@ -1226,9 +1226,10 @@ InstructionQueue<Impl>::getDeferredMemInstToExecute()
                 || ((*it)->onlyWaitForFence() && !(*it)->fenceDelay())
                 ) {
             DynInstPtr mem_inst = *it;
+            assert(!(mem_inst->getDOPPDbg() && mem_inst->translationCompleted() && mem_inst->fenceDelay()));
             // Akk[DOPP]: don't issue doppelganger after doppelganger translation completes
             if ((mem_inst->fenceDelay() || mem_inst->isDOPPLoadExecuting()) && 
-                 mem_inst->hasDOPPTranslationCompleted()
+                 mem_inst->hasDOPPTranslationCompleted() && !mem_inst->isSquashed()
             ) {
                 continue;
             }

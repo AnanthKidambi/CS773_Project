@@ -112,13 +112,17 @@ def config_scheme(cpu_cls, cpu_list, options):
             else:
                 cpu.STT = False;
                 
-            if options.DOPP:
+            if options.DOPP == 1:
                 if not cpu.STT:
                     print "STT must be enabled to enable DOPP"
                     fatal("STT must be enabled to enable DOPP")
                 cpu.DOPP = True;
-            else:
+                print "DOPP is set"
+            elif options.DOPP == 0:
                 cpu.DOPP = False;
+                print "DOPP is not set"
+            else:
+                raise ValueError("DOPP must be 0 or 1")
 
             if options.implicit_channel:
                 cpu.implicitChannel = True;
