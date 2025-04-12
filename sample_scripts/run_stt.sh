@@ -4,7 +4,6 @@
 STT_PATH=.
 
 # put your executable path here
-# EXE_PATH=../microbench/CCa/bench.X86
 # EXE_PATH=../gapbs/bc
 # EXE_PATH=../gapbs/bfs 
 # EXE_PATH=../gapbs/cc_sv

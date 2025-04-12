@@ -414,10 +414,10 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     // Akk[DOPP]: getters and setters for DOPP
     bool isDOPPLoadExecuting() const { return instFlags[IsDOPPLoadExecuting]; }
-    void isDOPPLoadExecuting(bool f) { instFlags[IsDOPPLoadExecuting] = f; }
+    void isDOPPLoadExecuting(bool f) { assert(cpu->DOPP); instFlags[IsDOPPLoadExecuting] = f; }
 
     bool isDOPPLoadSuccess() const { return instFlags[IsDOPPLoadSuccess]; }
-    void isDOPPLoadSuccess(bool f) { instFlags[IsDOPPLoadSuccess] = f; }
+    void isDOPPLoadSuccess(bool f) { assert(cpu->DOPP); instFlags[IsDOPPLoadSuccess] = f; }
 
     bool hasDOPPFinished() const { return instFlags[DOPPFinished]; }
     void hasDOPPFinished(bool f) { instFlags[DOPPFinished] = f; }
@@ -1184,8 +1184,13 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
             splitRequest(req, sreqLow, sreqHigh);
         }
         // Akk[DOPP]: TODO: use the translation of doppelganger load if the address is the same
-        initiateTranslation(req, sreqLow, sreqHigh, NULL, BaseTLB::Read);
-
+        if (isDOPPPredCorrect() && isDOPPLoadSuccess()){
+            translationStarted(true);
+            translationCompleted(true);
+        }
+        else {
+            initiateTranslation(req, sreqLow, sreqHigh, NULL, BaseTLB::Read);
+        }
     }
 
     if (translationCompleted()) {

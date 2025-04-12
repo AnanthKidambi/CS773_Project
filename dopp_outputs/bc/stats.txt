@@ -4,11 +4,11 @@ sim_seconds                                  0.001132                       # Nu
 sim_ticks                                  1131772500                       # Number of ticks simulated
 final_tick                                 1131772500                       # Number of ticks from beginning of simulation (restored from checkpoints and never reset)
 sim_freq                                 1000000000000                       # Frequency of simulated ticks
-host_inst_rate                                  87994                       # Simulator instruction rate (inst/s)
-host_op_rate                                   143430                       # Simulator op (including micro ops) rate (op/s)
-host_tick_rate                               55520415                       # Simulator tick rate (ticks/s)
+host_inst_rate                                  80758                       # Simulator instruction rate (inst/s)
+host_op_rate                                   131635                       # Simulator op (including micro ops) rate (op/s)
+host_tick_rate                               50969426                       # Simulator tick rate (ticks/s)
 host_mem_usage                                4339384                       # Number of bytes of host memory used
-host_seconds                                    20.39                       # Real time elapsed on the host
+host_seconds                                    22.21                       # Real time elapsed on the host
 sim_insts                                     1793197                       # Number of instructions simulated
 sim_ops                                       2922929                       # Number of ops (including micro ops) simulated
 system.voltage_domain.voltage                       1                       # Voltage in Volts
@@ -278,7 +278,7 @@ system.cpu.branchPredindirectMispredicted        33568                       # N
 system.cpu_voltage_domain.voltage                   1                       # Voltage in Volts
 system.cpu_clk_domain.clock                       500                       # Clock period in ticks
 system.cpu.dtb.walker.pwrStateResidencyTicks::UNDEFINED   1131772500                       # Cumulative time (in ticks) in various power states
-system.cpu.dtb.rdAccesses                      551105                       # TLB accesses on read requests
+system.cpu.dtb.rdAccesses                      523095                       # TLB accesses on read requests
 system.cpu.dtb.wrAccesses                      196983                       # TLB accesses on write requests
 system.cpu.dtb.rdMisses                          1674                       # TLB misses on read requests
 system.cpu.dtb.wrMisses                           764                       # TLB misses on write requests
