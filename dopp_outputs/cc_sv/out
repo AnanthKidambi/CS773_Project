@@ -1,0 +1,30 @@
+gem5 Simulator System.  http://gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 compiled Apr 12 2025 07:33:05
+gem5 started Apr 13 2025 05:59:52
+gem5 executing on LAPTOP-UMA91TNL, pid 52789
+command line: ./build/X86_MESI_Two_Level/gem5.opt --outdir=./dopp_outputs/cc_sv ./configs/example/se.py --num-cpus=1 --mem-size=4GB --caches --l2cache --cpu-type=DerivO3CPU --threat_model=Spectre --needsTSO=1 --STT=1 --implicit_channel=1 --moreTransmitInsts=0 --ifPrintROB=0 --DOPP=1 -c ../gapbs/cc_sv -o '-g 14 -n 4'
+
+info: Standard input is not a terminal, disabling listeners.
+**********
+info: Configure for DerivO3CPU. needsTSO=1; threat_model=Spectre; STT=1; DOPP=1; implicit_channel=1; moreTransmitInsts=0, printROB=0
+**********
+DOPP is set
+Global frequency set at 1000000000000 ticks per second
+Info: simulation uses threatModel: Spectre; needsTSO=1
+applySTT = 1, implicit_channel = 1, ifPrintROB = 0, moreTransmitInsts = 0
+**** REAL SIMULATION ****
+Generate Time:       0.09653
+Build Time:          0.01261
+Graph has 16383 nodes and 212927 undirected edges for degree: 12
+Shiloach-Vishkin took 2 iterations
+Trial Time:          0.00713
+Shiloach-Vishkin took 2 iterations
+Trial Time:          0.00608
+Shiloach-Vishkin took 2 iterations
+Trial Time:          0.00608
+Shiloach-Vishkin took 2 iterations
+Trial Time:          0.00608
+Average Time:        0.00634
+Exiting @ tick 169542968500 because exiting with last active thread context

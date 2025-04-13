@@ -257,9 +257,9 @@
                         "cmd": [
                             "../gapbs/bfs", 
                             "-g", 
-                            "7", 
+                            "14", 
                             "-n", 
-                            "8"
+                            "4"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 

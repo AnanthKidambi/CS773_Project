@@ -238,7 +238,7 @@
                         "pid": 100, 
                         "kvmInSE": false, 
                         "cxx_class": "Process", 
-                        "executable": "../gapbs/", 
+                        "executable": "../gapbs/bfs", 
                         "drivers": [], 
                         "system": "system", 
                         "gid": 100, 
@@ -255,11 +255,11 @@
                         "path": "system.cpu.workload", 
                         "name": "workload", 
                         "cmd": [
-                            "../gapbs/", 
+                            "../gapbs/bfs", 
                             "-g", 
-                            "7", 
+                            "14", 
                             "-n", 
-                            "8"
+                            "4"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 
@@ -855,7 +855,7 @@
                     "sequential_access": false, 
                     "assoc": 2
                 }, 
-                "implicitChannel": true, 
+                "implicitChannel": false, 
                 "path": "system.cpu", 
                 "numRobs": 1, 
                 "switched_out": false, 
@@ -1191,9 +1191,9 @@
                     "role": "MASTER"
                 }, 
                 "LSQDepCheckShift": 4, 
-                "STT": true, 
+                "STT": false, 
                 "trapLatency": 13, 
-                "DOPP": true, 
+                "DOPP": false, 
                 "iewToDecodeDelay": 1, 
                 "numPhysCCRegs": 1280, 
                 "smtROBPolicy": "Partitioned", 
