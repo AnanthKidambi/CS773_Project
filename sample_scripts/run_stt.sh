@@ -12,11 +12,11 @@ STT_PATH=.
 # EXE_PATH=../gapbs/pr_spmv
 # EXE_PATH=../gapbs/sssp
 # EXE_PATH=../gapbs/tc
-# EXE_PATH=../gapbs/${EXE}
-EXE_PATH=dopp_test/tainted_acc
+EXE_PATH=../gapbs/${EXE}
+# EXE_PATH=dopp_test/tainted_acc
 
 # gem5 output path
-OUT_DIR=$STT_PATH/stt_outputs/${EXE}
+OUT_DIR=$STT_PATH/stt_outputs_temp/${EXE}
 
 # gem5 configuration file
 CONFIG_FILE=$STT_PATH/configs/example/se.py
@@ -30,5 +30,5 @@ $STT_PATH/build/X86_MESI_Two_Level/gem5.opt --outdir=$OUT_DIR \
     --moreTransmitInsts=0 --ifPrintROB=0 \
     --DOPP=0 \
     -c $EXE_PATH \
-    -o "100000" \
-    # -o "-g 7 -n 8"
+    -o "-g 7 -n 8"
+    # -o "100000" \

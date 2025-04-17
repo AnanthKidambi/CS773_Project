@@ -911,7 +911,7 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
     }
 
     // Akk[DOPP]: use data from doppelganger load if it is successful and the predicted address is correct.
-    assert(load_inst->isDOPPPredCorrect());
+    // assert(load_inst->isDOPPPredCorrect());
     if (load_inst->isDOPPPredCorrect() && load_inst->isDOPPLoadSuccess()){
         assert(!load_inst->isDOPPLoadExecuting());
         memcpy(load_inst->memData, load_inst->doppMemData, req->getSize());
