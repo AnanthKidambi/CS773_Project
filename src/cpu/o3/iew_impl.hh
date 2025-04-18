@@ -1445,6 +1445,30 @@ DefaultIEW<Impl>::executeInsts()
 
 }
 
+// Akk[DOPP2]
+template <class Impl>
+void
+DefaultIEW<Impl>::wakeDOPPDependents(){
+    DynInstPtr mem_inst;
+    while (mem_inst = instQueue.getDOPPWakeInst()) {
+        ThreadID tid = mem_inst->threadNumber;
+        int dependents = instQueue.wakeDependents(mem_inst);
+        for (int i = 0; i < mem_inst->numDestRegs(); i++) {
+            //mark as Ready
+            DPRINTF(IEW, "Setting Destination Register %i (%s)\n",
+                mem_inst->renamedDestRegIdx(i)->index(),
+                mem_inst->renamedDestRegIdx(i)->className());
+            scoreboard->setReg(mem_inst->renamedDestRegIdx(i));
+        }
+            
+        if (dependents) {
+            producerInst[tid]++;
+            consumerInst[tid]+= dependents;
+        }
+        mem_inst->doppHasWokenDependents(true);
+    } 
+}
+
 template <class Impl>
 void
 DefaultIEW<Impl>::writebackInsts()
@@ -1472,20 +1496,22 @@ DefaultIEW<Impl>::writebackInsts()
         // E.g. Strictly ordered loads have not actually executed when they
         // are first sent to commit.  Instead commit must tell the LSQ
         // when it's ready to execute the strictly ordered load.
-        if (!inst->isSquashed() && inst->isExecuted() && inst->getFault() == NoFault) {
-            int dependents = instQueue.wakeDependents(inst);
-
-            for (int i = 0; i < inst->numDestRegs(); i++) {
-                //mark as Ready
-                DPRINTF(IEW,"Setting Destination Register %i (%s)\n",
-                        inst->renamedDestRegIdx(i)->index(),
-                        inst->renamedDestRegIdx(i)->className());
-                scoreboard->setReg(inst->renamedDestRegIdx(i));
-            }
-
-            if (dependents) {
-                producerInst[tid]++;
-                consumerInst[tid]+= dependents;
+        if (!inst->isSquashed() && inst->isExecuted() && (inst->getFault() == NoFault)) {
+            // Akk[DOPP2]: do not wake dependents if the doppelganger has already woken up dependents 
+            if (!(inst->doppHasWokenDependents())){
+                int dependents = instQueue.wakeDependents(inst);
+    
+                for (int i = 0; i < inst->numDestRegs(); i++) {
+                    //mark as Ready
+                    DPRINTF(IEW,"Setting Destination Register %i (%s)\n",
+                            inst->renamedDestRegIdx(i)->index(),
+                            inst->renamedDestRegIdx(i)->className());
+                    scoreboard->setReg(inst->renamedDestRegIdx(i));
+                }
+                if (dependents) {
+                    producerInst[tid]++;
+                    consumerInst[tid]+= dependents;
+                }
             }
             writebackCount[tid]++;
         }
@@ -1531,6 +1557,9 @@ DefaultIEW<Impl>::tick()
 
     if (exeStatus != Squashing) {
         executeInsts();
+
+        // Akk[DOPP2]
+        wakeDOPPDependents();
 
         writebackInsts();
 

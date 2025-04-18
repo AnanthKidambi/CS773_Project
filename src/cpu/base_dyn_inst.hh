@@ -189,6 +189,9 @@ class BaseDynInst : public ExecContext, public RefCounted
         DOPPFinished,
         DOPPTranslationCompleted,
         DOPPDbg,
+        // Akk[DOPP2]: represents whether the doppelganger load has finished and should wake dependents
+        DOPPShouldWakeDependents,
+        DOPPHasWokenDependents, // set if the doppelganger load has woken up dependents
         MaxFlags
     };
 
@@ -428,13 +431,20 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool getDOPPDbg() const { return instFlags[DOPPDbg]; }
     void setDOPPDbg(bool f) { instFlags[DOPPDbg] = f; }
 
-    bool isDOPPPredCorrect() const { return false; }
+    bool isDOPPPredCorrect() const { return true; }
 
     void resetDOPP(){
         // call before doing the actual load after DOPP 
         translationStarted(false);
         translationCompleted(false);
     }
+
+    // Akk[DOPP2]
+    bool doppShouldWakeDependents() const { return instFlags[DOPPShouldWakeDependents]; }
+    void doppShouldWakeDependents(bool f) { instFlags[DOPPShouldWakeDependents] = f; }
+
+    bool doppHasWokenDependents() const { return instFlags[DOPPHasWokenDependents]; }
+    void doppHasWokenDependents(bool f) { instFlags[DOPPHasWokenDependents] = f; }
 
     ////////////////////////////////////////////
     //

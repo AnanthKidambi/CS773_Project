@@ -1193,7 +1193,7 @@
                 "LSQDepCheckShift": 4, 
                 "STT": true, 
                 "trapLatency": 13, 
-                "DOPP": true, 
+                "DOPP": false, 
                 "iewToDecodeDelay": 1, 
                 "numPhysCCRegs": 1280, 
                 "smtROBPolicy": "Partitioned", 

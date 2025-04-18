@@ -238,7 +238,7 @@
                         "pid": 100, 
                         "kvmInSE": false, 
                         "cxx_class": "Process", 
-                        "executable": "../gapbs/", 
+                        "executable": "dopp_test/tainted_acc", 
                         "drivers": [], 
                         "system": "system", 
                         "gid": 100, 
@@ -255,11 +255,8 @@
                         "path": "system.cpu.workload", 
                         "name": "workload", 
                         "cmd": [
-                            "../gapbs/", 
-                            "-g", 
-                            "5", 
-                            "-n", 
-                            "3"
+                            "dopp_test/tainted_acc", 
+                            "100000"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 

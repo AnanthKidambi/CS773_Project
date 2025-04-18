@@ -39,3 +39,4 @@ process_script/tmp*
 process_script/stat*
 figure/*
 script
+dopp_outputs/*

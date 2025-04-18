@@ -238,7 +238,7 @@
                         "pid": 100, 
                         "kvmInSE": false, 
                         "cxx_class": "Process", 
-                        "executable": "../gapbs/cc_sv", 
+                        "executable": "../gapbs/bc", 
                         "drivers": [], 
                         "system": "system", 
                         "gid": 100, 
@@ -255,11 +255,11 @@
                         "path": "system.cpu.workload", 
                         "name": "workload", 
                         "cmd": [
-                            "../gapbs/cc_sv", 
+                            "../gapbs/bc", 
                             "-g", 
-                            "11", 
+                            "8", 
                             "-n", 
-                            "1"
+                            "8"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 
@@ -1193,7 +1193,7 @@
                 "LSQDepCheckShift": 4, 
                 "STT": true, 
                 "trapLatency": 13, 
-                "DOPP": true, 
+                "DOPP": false, 
                 "iewToDecodeDelay": 1, 
                 "numPhysCCRegs": 1280, 
                 "smtROBPolicy": "Partitioned", 

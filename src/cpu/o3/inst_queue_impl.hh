@@ -1246,6 +1246,22 @@ InstructionQueue<Impl>::getDeferredMemInstToExecute()
     return nullptr;
 }
 
+// Akk[DOPP2]: returns instructions for which the doppelganger has finished executing, and we can wake the dependents
+template <class Impl>
+typename Impl::DynInstPtr
+InstructionQueue<Impl>::getDOPPWakeInst(){
+    for (ListIt it = deferredMemInsts.begin(); it != deferredMemInsts.end(); ++it){
+        DynInstPtr mem_inst = *it;
+        if (mem_inst->doppShouldWakeDependents()){
+            mem_inst->doppShouldWakeDependents(false);
+            if (!mem_inst->isSquashed()){
+                return mem_inst;
+            }
+        }
+    }
+    return nullptr;
+}
+
 template <class Impl>
 typename Impl::DynInstPtr
 InstructionQueue<Impl>::getBlockedMemInstToExecute()

@@ -1416,9 +1416,13 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
                 if (inst->DOPPAlreadyForwarded){
                     assert(cpu->STT && cpu->impChannel && cpu->DOPP);
                     memcpy(inst->doppMemData, inst->doppStFwdData, inst->doppStFwdDataSize);
+                    // Akk[DOPP]: TODO: free the memory in the destructor
                     delete[] inst->doppStFwdData;
                     inst->doppStFwdData = NULL;
                 }
+                // Akk[DOPP2]: since load is being propagated, we need to write value to the registers
+                inst->completeAcc(pkt);
+                // inst->setExecuted();
             }
             // Jiyong, STT: writeback forwarded data
             else{
@@ -1471,6 +1475,8 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
         inst->isDOPPLoadSuccess(inst->fault == NoFault);
         inst->hasDOPPFinished(true);
         inst->resetDOPP();
+        // Akk[DOPP2]
+        inst->doppShouldWakeDependents(inst->isDOPPLoadSuccess());
     }
 }
 

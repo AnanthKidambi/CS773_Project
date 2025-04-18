@@ -263,6 +263,12 @@ class DefaultIEW
      */
     void executeInsts();
 
+    // Akk[DOPP2]
+    /**
+     * Wakes up dependents of a memory instruction that has a doppelganger
+     */
+    void wakeDOPPDependents();
+
     /** Writebacks instructions. In our model, the instruction's execute()
      * function atomically reads registers, executes, and writes registers.
      * Thus this writeback only wakes up dependent instructions, and informs

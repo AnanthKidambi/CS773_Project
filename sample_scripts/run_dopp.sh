@@ -12,8 +12,8 @@ STT_PATH=.
 # EXE_PATH=../gapbs/pr
 # EXE_PATH=../gapbs/sssp
 # EXE_PATH=../gapbs/tc
-EXE_PATH=../gapbs/${EXE}
-# EXE_PATH=dopp_test/tainted_acc
+# EXE_PATH=../gapbs/${EXE}
+EXE_PATH=dopp_test/tainted_acc
 
 # gem5 output path
 OUT_DIR=$STT_PATH/dopp_outputs/${EXE}
@@ -30,4 +30,5 @@ $STT_PATH/build/X86_MESI_Two_Level/gem5.opt --outdir=$OUT_DIR \
     --moreTransmitInsts=0 --ifPrintROB=0 \
     --DOPP=1 \
     -c $EXE_PATH \
-    -o "-g 5 -n 3"
+    -o "100000" \
+    # -o "-g 11 -n 1"

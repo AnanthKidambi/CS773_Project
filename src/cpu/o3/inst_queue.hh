@@ -191,6 +191,13 @@ class InstructionQueue
      */
     DynInstPtr getInstToExecute();
 
+    // Akk[DOPP2] 
+    /**
+     * Returns a doppelganger instruction that has finished executing 
+     * but hasn't woken up its dependents 
+     */
+    DynInstPtr getDOPPWakeInst();
+
     /** Gets a memory instruction that was referred due to a delayed DTB
      *  translation if it is now ready to execute.  NULL if none available.
      */
