@@ -232,11 +232,21 @@ class DefaultIEW
     /** Check misprediction  */
     void checkMisprediction(DynInstPtr &inst);
 
+    // Akk[DOPP2]
+    void checkDOPPMisprediction(DynInstPtr &inst);
+
   private:
     /** Sends commit proper information for a squash due to a branch
      * mispredict.
      */
     void squashDueToBranch(DynInstPtr &inst, ThreadID tid);
+
+    // Akk[DOPP2]
+    /**
+     * Sends commit proper information for a squash due to a mispredicted
+     * doppelganger
+     */
+    void squashDueToDOPPMispredict(DynInstPtr &inst, ThreadID tid);
 
     /** Sends commit proper information for a squash due to a memory order
      * violation.

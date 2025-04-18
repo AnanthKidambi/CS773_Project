@@ -431,7 +431,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool getDOPPDbg() const { return instFlags[DOPPDbg]; }
     void setDOPPDbg(bool f) { instFlags[DOPPDbg] = f; }
 
-    bool isDOPPPredCorrect() const { return true; }
+    bool isDOPPPredCorrect() const { return false; }
 
     void resetDOPP(){
         // call before doing the actual load after DOPP 

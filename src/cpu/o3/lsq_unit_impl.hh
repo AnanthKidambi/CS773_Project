@@ -1467,6 +1467,8 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
     // see if this load changed the PC
     if (!inst->isDOPPLoadExecuting()){
         iewStage->checkMisprediction(inst);
+        // Akk[DOPP2]
+        iewStage->checkDOPPMisprediction(inst);
     }
 
     // Akk[DOPP]: set DOPP flags

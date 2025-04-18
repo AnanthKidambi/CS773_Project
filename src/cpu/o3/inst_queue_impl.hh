@@ -1084,6 +1084,62 @@ InstructionQueue<Impl>::wakeDependents(DynInstPtr &completed_inst)
     return dependents;
 }
 
+// Akk[DOPP2]
+template <class Impl>
+int
+InstructionQueue<Impl>::doppWakeDependents(DynInstPtr &completed_inst)
+{
+    int dependents = 0;
+
+    assert(completed_inst->isLoad());
+    assert(!completed_inst->isSquashed());
+
+    // Tell the memory dependence unit to wake any dependents on this
+    // instruction if it is a memory instruction.  Also complete the memory
+    // instruction at this point since we know it executed without issues.
+    
+    memDepUnit[completed_inst->threadNumber].wakeDependents(completed_inst);
+    // completeMemInst(completed_inst); // Akk[DOPP2]: do this once the actual load finishes
+
+    for (int dest_reg_idx = 0; dest_reg_idx < completed_inst->numDestRegs(); dest_reg_idx++) {
+        PhysRegIdPtr dest_reg =
+            completed_inst->renamedDestRegIdx(dest_reg_idx);
+
+        // Special case of uniq or control registers.  They are not
+        // handled by the IQ and thus have no dependency graph entry.
+        if (dest_reg->isFixedMapping()) {
+            continue;
+        }
+
+        //Go through the dependency chain, marking the registers as
+        //ready within the waiting instructions.
+        DynInstPtr dep_inst = dependGraph.pop(dest_reg->flatIndex());
+
+        while (dep_inst) {
+            // Might want to give more information to the instruction
+            // so that it knows which of its source registers is
+            // ready.  However that would mean that the dependency
+            // graph entries would need to hold the src_reg_idx.
+            dep_inst->markSrcRegReady();
+
+            addIfReady(dep_inst);
+
+            dep_inst = dependGraph.pop(dest_reg->flatIndex());
+
+            ++dependents;
+        }
+
+        // Reset the head node now that all of its dependents have
+        // been woken up.
+        assert(dependGraph.empty(dest_reg->flatIndex()));
+        dependGraph.clearInst(dest_reg->flatIndex());
+
+        // Mark the scoreboard as having that register ready.
+        regScoreboard[dest_reg->flatIndex()] = true;
+    }
+    return dependents;
+}
+
 
 /*** [Jiyong,STT] ***/
 template <class Impl>

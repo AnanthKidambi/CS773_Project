@@ -504,6 +504,33 @@ DefaultIEW<Impl>::squashDueToBranch(DynInstPtr &inst, ThreadID tid)
 
 }
 
+// Akk[DOPP2] 
+template<class Impl>
+void
+DefaultIEW<Impl>::squashDueToDOPPMispredict(DynInstPtr &inst, ThreadID tid)
+{
+    DPRINTF(IEW, "[tid:%i]: Squashing from a specific instruction, PC: %s "
+            "[sn:%i].\n", tid, inst->pcState(), inst->seqNum);
+
+    if (!toCommit->squash[tid] ||
+            inst->seqNum < toCommit->squashedSeqNum[tid]) {
+        toCommit->squash[tid] = true;           // tell commit that you need to squash
+        toCommit->squashedSeqNum[tid] = inst->seqNum;   // tell commit from which instr to squash
+
+        TheISA::PCState pc = inst->pcState();
+        TheISA::advancePC(pc, inst->staticInst);
+
+        toCommit->pc[tid] = pc;
+        toCommit->mispredictInst[tid] = NULL;
+        toCommit->instCausingSquash[tid] = inst;
+
+        // the mispredicted instr itself should not be squashed
+        toCommit->includeSquashInst[tid] = false;
+
+        wroteToTimeBuffer = true;
+    }
+}
+
 template<class Impl>
 void
 DefaultIEW<Impl>::squashDueToMemOrder(DynInstPtr &inst, ThreadID tid)
@@ -1405,6 +1432,13 @@ DefaultIEW<Impl>::executeInsts()
                 squashDueToMemOrder(violator, tid);
 
                 ++memOrderViolationEvents;
+            } 
+            // Akk[DOPP2]
+            else if (!inst->isDOPPPredCorrect() && inst->isDOPPLoadSuccess()) {
+                assert(inst->doppHasWokenDependents());
+                fetchRedirect[tid] = true;
+                // If incorrect, then signal the ROB that it must be squashed.
+                squashDueToDOPPMispredict(inst, tid);
             }
         } else {
             // Reset any state associated with redirects that will not
@@ -1452,7 +1486,7 @@ DefaultIEW<Impl>::wakeDOPPDependents(){
     DynInstPtr mem_inst;
     while (mem_inst = instQueue.getDOPPWakeInst()) {
         ThreadID tid = mem_inst->threadNumber;
-        int dependents = instQueue.wakeDependents(mem_inst);
+        int dependents = instQueue.doppWakeDependents(mem_inst);
         for (int i = 0; i < mem_inst->numDestRegs(); i++) {
             //mark as Ready
             DPRINTF(IEW, "Setting Destination Register %i (%s)\n",
@@ -1512,6 +1546,10 @@ DefaultIEW<Impl>::writebackInsts()
                     producerInst[tid]++;
                     consumerInst[tid]+= dependents;
                 }
+            }
+            // Akk[DOPP2]
+            else {
+                instQueue.completeMemInst(inst);
             }
             writebackCount[tid]++;
         }
@@ -1722,6 +1760,33 @@ DefaultIEW<Impl>::checkMisprediction(DynInstPtr &inst)
                 predictedNotTakenIncorrect++;
             }
         }
+    }
+}
+
+
+// Akk[DOPP2]
+template <class Impl>
+void
+DefaultIEW<Impl>::checkDOPPMisprediction(DynInstPtr &inst)
+{
+    ThreadID tid = inst->threadNumber;
+
+    if (!fetchRedirect[tid] ||
+        !toCommit->squash[tid] ||
+        toCommit->squashedSeqNum[tid] > inst->seqNum) {
+
+        if (!inst->isDOPPPredCorrect() && inst->isDOPPLoadSuccess()) {
+            assert(inst->doppHasWokenDependents());
+            fetchRedirect[tid] = true;
+            // If incorrect, then signal the ROB that it must be squashed.
+            squashDueToDOPPMispredict(inst, tid);
+        }
+
+        // if (inst->readPredTaken()) {
+        //     predictedTakenIncorrect++;
+        // } else {
+        //     predictedNotTakenIncorrect++;
+        // }
     }
 }
 

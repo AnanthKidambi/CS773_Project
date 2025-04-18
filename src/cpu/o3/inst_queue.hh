@@ -236,6 +236,12 @@ class InstructionQueue
     /** Wakes all dependents of a completed instruction. */
     int wakeDependents(DynInstPtr &completed_inst);
 
+    // Akk[DOPP2]
+    /**
+     * Wakes all dependents of a doppelganger load without calling completeMemInst (which has to be called later) 
+     */
+    int doppWakeDependents(DynInstPtr &completed_inst);
+
     /** [Jiyong, STT] do a scan of instList and wake readyToIssue insts **/
     /** Used because wakeDependents cannot set readyToIssue if argsTainted **/
     void wakeUntaintInsts();
