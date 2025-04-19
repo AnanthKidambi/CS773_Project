@@ -184,14 +184,15 @@ class BaseDynInst : public ExecContext, public RefCounted
         HasImplicitFlow,
         HasPendingSquash,   // for branch/load, if a squash is postponed due to the tainted dependent operands
         // Akk[DOPP]: flags for DOPP
-        IsDOPPLoadExecuting, 
-        IsDOPPLoadSuccess,
-        DOPPFinished,
-        DOPPTranslationCompleted,
+        DOPPLoadExecuting, 
+        DOPPLoadSuccess,
+        DOPPLoadFinished,
+        DOPPLoadTranslationCompleted,
         DOPPDbg,
         // Akk[DOPP2]: represents whether the doppelganger load has finished and should wake dependents
         DOPPShouldWakeDependents,
         DOPPHasWokenDependents, // set if the doppelganger load has woken up dependents
+        DOPPMispredicted,
         MaxFlags
     };
 
@@ -235,6 +236,12 @@ class BaseDynInst : public ExecContext, public RefCounted
      *  @todo: Not sure this should be here vs the derived class.
      */
     std::bitset<MaxInstSrcRegs> _readySrcRegIdx;
+
+    // Akk[DOPP2]
+    /**
+     * Predicted address of doppelganger load
+     */
+    Addr DOPPPredAddr = 0; 
 
   public:
     /** The thread this instruction is from. */
@@ -416,22 +423,21 @@ class BaseDynInst : public ExecContext, public RefCounted
     void setNotAnInst() { instFlags[NotAnInst] = true; }
 
     // Akk[DOPP]: getters and setters for DOPP
-    bool isDOPPLoadExecuting() const { return instFlags[IsDOPPLoadExecuting]; }
-    void isDOPPLoadExecuting(bool f) { assert(cpu->DOPP); instFlags[IsDOPPLoadExecuting] = f; }
+    bool isDOPPLoadExecuting() const { return instFlags[DOPPLoadExecuting]; }
+    void isDOPPLoadExecuting(bool f) { assert(cpu->DOPP); instFlags[DOPPLoadExecuting] = f; }
 
-    bool isDOPPLoadSuccess() const { return instFlags[IsDOPPLoadSuccess]; }
-    void isDOPPLoadSuccess(bool f) { assert(cpu->DOPP); instFlags[IsDOPPLoadSuccess] = f; }
+    bool isDOPPLoadSuccess() const { return instFlags[DOPPLoadSuccess]; }
+    void isDOPPLoadSuccess(bool f) { assert(cpu->DOPP); instFlags[DOPPLoadSuccess] = f; }
 
-    bool hasDOPPFinished() const { return instFlags[DOPPFinished]; }
-    void hasDOPPFinished(bool f) { instFlags[DOPPFinished] = f; }
+    bool hasDOPPLoadFinished() const { return instFlags[DOPPLoadFinished]; }
+    void hasDOPPLoadFinished(bool f) { instFlags[DOPPLoadFinished] = f; }
 
-    bool hasDOPPTranslationCompleted() const { return instFlags[DOPPTranslationCompleted]; }
-    void hasDOPPTranslationCompleted(bool f) { instFlags[DOPPTranslationCompleted] = f; }
+    bool hasDOPPLoadTranslationCompleted() const { return instFlags[DOPPLoadTranslationCompleted]; }
+    void hasDOPPLoadTranslationCompleted(bool f) { instFlags[DOPPLoadTranslationCompleted] = f; }
     
     bool getDOPPDbg() const { return instFlags[DOPPDbg]; }
     void setDOPPDbg(bool f) { instFlags[DOPPDbg] = f; }
 
-    bool isDOPPPredCorrect() const { return false; }
 
     void resetDOPP(){
         // call before doing the actual load after DOPP 
@@ -440,11 +446,25 @@ class BaseDynInst : public ExecContext, public RefCounted
     }
 
     // Akk[DOPP2]
-    bool doppShouldWakeDependents() const { return instFlags[DOPPShouldWakeDependents]; }
-    void doppShouldWakeDependents(bool f) { instFlags[DOPPShouldWakeDependents] = f; }
+    bool shouldDOPPWakeDependents() const { return instFlags[DOPPShouldWakeDependents]; }
+    void shouldDOPPWakeDependents(bool f) { instFlags[DOPPShouldWakeDependents] = f; }
 
-    bool doppHasWokenDependents() const { return instFlags[DOPPHasWokenDependents]; }
-    void doppHasWokenDependents(bool f) { instFlags[DOPPHasWokenDependents] = f; }
+    bool hasDOPPWokenDependents() const { return instFlags[DOPPHasWokenDependents]; }
+    void hasDOPPWokenDependents(bool f) { instFlags[DOPPHasWokenDependents] = f; }
+
+    void setDOPPMispredicted(Addr actualAddr) {
+        instFlags[DOPPMispredicted] = (actualAddr != DOPPPredAddr);
+    } 
+
+    bool isDOPPPredCorrect() const { return !instFlags[DOPPMispredicted]; }
+
+    // Akk[DOPP2]
+    Addr getDOPPPredAddr() {
+        // Todo: Call the predictor here
+        assert(!DOPPPredAddr);
+        DOPPPredAddr = static_cast<Addr>(1ull);
+        return DOPPPredAddr;
+    }
 
     ////////////////////////////////////////////
     //
@@ -1170,6 +1190,14 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
     //     return NoFault;
     // }
 
+    // Akk[DOPP2]
+    if (isDOPPLoadExecuting()){
+        addr = getDOPPPredAddr();
+    }
+    else {
+        setDOPPMispredicted(addr);
+    }
+
     instFlags[ReqMade] = true;
     instFlags[SpecTLBMiss] = false;
     Request *req = NULL;
@@ -1185,10 +1213,7 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
                           thread->contextId());
 
         req->taskId(cpu->taskId());
-        // Akk: commented unexecutable code
-        // if(!readyToExpose()){
-        //     req->setFlags(Request::SPEC);
-        // }
+        // Akk: removed code
         // Only split the request if the ISA supports unaligned accesses.
         if (TheISA::HasUnalignedMemAcc) {
             splitRequest(req, sreqLow, sreqHigh);
@@ -1242,8 +1267,8 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
             if (isDOPPLoadExecuting()){
                 isDOPPLoadExecuting(false);
                 isDOPPLoadSuccess(false);
-                hasDOPPFinished(true);
-                hasDOPPTranslationCompleted(true);
+                hasDOPPLoadFinished(true);
+                hasDOPPLoadTranslationCompleted(true);
                 resetDOPP();
             }
             else {

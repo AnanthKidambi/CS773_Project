@@ -1435,7 +1435,7 @@ DefaultIEW<Impl>::executeInsts()
             } 
             // Akk[DOPP2]
             else if (!inst->isDOPPPredCorrect() && inst->isDOPPLoadSuccess()) {
-                assert(inst->doppHasWokenDependents());
+                assert(inst->hasDOPPWokenDependents());
                 fetchRedirect[tid] = true;
                 // If incorrect, then signal the ROB that it must be squashed.
                 squashDueToDOPPMispredict(inst, tid);
@@ -1484,9 +1484,9 @@ template <class Impl>
 void
 DefaultIEW<Impl>::wakeDOPPDependents(){
     DynInstPtr mem_inst;
-    while (mem_inst = instQueue.getDOPPWakeInst()) {
+    while (mem_inst = instQueue.getDOPPInstToWakeDeps()) {
         ThreadID tid = mem_inst->threadNumber;
-        int dependents = instQueue.doppWakeDependents(mem_inst);
+        int dependents = instQueue.wakeDOPPDependents(mem_inst);
         for (int i = 0; i < mem_inst->numDestRegs(); i++) {
             //mark as Ready
             DPRINTF(IEW, "Setting Destination Register %i (%s)\n",
@@ -1499,7 +1499,7 @@ DefaultIEW<Impl>::wakeDOPPDependents(){
             producerInst[tid]++;
             consumerInst[tid]+= dependents;
         }
-        mem_inst->doppHasWokenDependents(true);
+        mem_inst->hasDOPPWokenDependents(true);
     } 
 }
 
@@ -1532,7 +1532,7 @@ DefaultIEW<Impl>::writebackInsts()
         // when it's ready to execute the strictly ordered load.
         if (!inst->isSquashed() && inst->isExecuted() && (inst->getFault() == NoFault)) {
             // Akk[DOPP2]: do not wake dependents if the doppelganger has already woken up dependents 
-            if (!(inst->doppHasWokenDependents())){
+            if (!(inst->hasDOPPWokenDependents())){
                 int dependents = instQueue.wakeDependents(inst);
     
                 for (int i = 0; i < inst->numDestRegs(); i++) {
@@ -1776,7 +1776,7 @@ DefaultIEW<Impl>::checkDOPPMisprediction(DynInstPtr &inst)
         toCommit->squashedSeqNum[tid] > inst->seqNum) {
 
         if (!inst->isDOPPPredCorrect() && inst->isDOPPLoadSuccess()) {
-            assert(inst->doppHasWokenDependents());
+            assert(inst->hasDOPPWokenDependents());
             fetchRedirect[tid] = true;
             // If incorrect, then signal the ROB that it must be squashed.
             squashDueToDOPPMispredict(inst, tid);

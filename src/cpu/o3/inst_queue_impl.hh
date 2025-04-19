@@ -1087,7 +1087,7 @@ InstructionQueue<Impl>::wakeDependents(DynInstPtr &completed_inst)
 // Akk[DOPP2]
 template <class Impl>
 int
-InstructionQueue<Impl>::doppWakeDependents(DynInstPtr &completed_inst)
+InstructionQueue<Impl>::wakeDOPPDependents(DynInstPtr &completed_inst)
 {
     int dependents = 0;
 
@@ -1285,7 +1285,7 @@ InstructionQueue<Impl>::getDeferredMemInstToExecute()
             assert(!(mem_inst->getDOPPDbg() && mem_inst->translationCompleted() && mem_inst->fenceDelay()));
             // Akk[DOPP]: don't issue doppelganger after doppelganger translation completes
             if ((mem_inst->fenceDelay() || mem_inst->isDOPPLoadExecuting()) && 
-                 mem_inst->hasDOPPTranslationCompleted() && !mem_inst->isSquashed()
+                 mem_inst->hasDOPPLoadTranslationCompleted() && !mem_inst->isSquashed()
             ) {
                 continue;
             }
@@ -1305,11 +1305,11 @@ InstructionQueue<Impl>::getDeferredMemInstToExecute()
 // Akk[DOPP2]: returns instructions for which the doppelganger has finished executing, and we can wake the dependents
 template <class Impl>
 typename Impl::DynInstPtr
-InstructionQueue<Impl>::getDOPPWakeInst(){
+InstructionQueue<Impl>::getDOPPInstToWakeDeps(){
     for (ListIt it = deferredMemInsts.begin(); it != deferredMemInsts.end(); ++it){
         DynInstPtr mem_inst = *it;
-        if (mem_inst->doppShouldWakeDependents()){
-            mem_inst->doppShouldWakeDependents(false);
+        if (mem_inst->shouldDOPPWakeDependents()){
+            mem_inst->shouldDOPPWakeDependents(false);
             if (!mem_inst->isSquashed()){
                 return mem_inst;
             }

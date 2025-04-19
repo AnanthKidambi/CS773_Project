@@ -844,7 +844,7 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
             if (cpu->DOPP && load_inst->isDOPPLoadExecuting()){
                 load_inst->isDOPPLoadExecuting(false);
                 load_inst->isDOPPLoadSuccess(false);
-                load_inst->hasDOPPFinished(true);
+                load_inst->hasDOPPLoadFinished(true);
                 load_inst->resetDOPP();
 
                 delete req;
@@ -1065,7 +1065,7 @@ LSQUnit<Impl>::read(Request *req, Request *sreqLow, Request *sreqHigh,
             if (!completedFirst){
                 load_inst->isDOPPLoadExecuting(false);
                 load_inst->isDOPPLoadSuccess(false);
-                load_inst->hasDOPPFinished(true);
+                load_inst->hasDOPPLoadFinished(true);
                 load_inst->resetDOPP();
             }
             load_inst->DOPPAlreadyForwarded = false;

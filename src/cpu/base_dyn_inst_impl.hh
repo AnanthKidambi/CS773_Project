@@ -109,6 +109,9 @@ BaseDynInst<Impl>::initVars()
     // Akk[DOPP]
     DOPPAlreadyForwarded = false;
 
+    // Akk[DOPP2]
+    DOPPPredAddr = 0;
+
     lqIdx = -1;
     sqIdx = -1;
 

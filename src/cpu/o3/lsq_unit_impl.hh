@@ -114,7 +114,7 @@ LSQUnit<Impl>::completeDataAccess(PacketPtr pkt)
         if (cpu->DOPP && inst->isDOPPLoadExecuting()){
             inst->isDOPPLoadExecuting(false);
             inst->isDOPPLoadSuccess(false);
-            inst->hasDOPPFinished(true);
+            inst->hasDOPPLoadFinished(true);
             inst->resetDOPP();
         }
         return;
@@ -757,15 +757,15 @@ LSQUnit<Impl>::executeLoad(DynInstPtr &inst)
             // Akk[DOPP]: faulty doppelganger, do not re-execute.
             inst->isDOPPLoadExecuting(false);
             inst->isDOPPLoadSuccess(false);
-            inst->hasDOPPFinished(true);
-            inst->hasDOPPTranslationCompleted(false);
+            inst->hasDOPPLoadFinished(true);
+            inst->hasDOPPLoadTranslationCompleted(false);
             inst->resetDOPP();
             inst->setDOPPDbg(true);
             return load_fault;
         }
         else if (inst->translationCompleted()){
-            assert(!inst->hasDOPPTranslationCompleted());
-            inst->hasDOPPTranslationCompleted(true);
+            assert(!inst->hasDOPPLoadTranslationCompleted());
+            inst->hasDOPPLoadTranslationCompleted(true);
             return load_fault;
         }
         else {
@@ -1422,7 +1422,6 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
                 }
                 // Akk[DOPP2]: since load is being propagated, we need to write value to the registers
                 inst->completeAcc(pkt);
-                // inst->setExecuted();
             }
             // Jiyong, STT: writeback forwarded data
             else{
@@ -1468,17 +1467,19 @@ LSQUnit<Impl>::writeback(DynInstPtr &inst, PacketPtr pkt)
     if (!inst->isDOPPLoadExecuting()){
         iewStage->checkMisprediction(inst);
         // Akk[DOPP2]
-        iewStage->checkDOPPMisprediction(inst);
+        if (cpu->DOPP){
+            iewStage->checkDOPPMisprediction(inst);
+        }
     }
 
     // Akk[DOPP]: set DOPP flags
     if (inst->isDOPPLoadExecuting()){
         inst->isDOPPLoadExecuting(false);
         inst->isDOPPLoadSuccess(inst->fault == NoFault);
-        inst->hasDOPPFinished(true);
+        inst->hasDOPPLoadFinished(true);
         inst->resetDOPP();
         // Akk[DOPP2]
-        inst->doppShouldWakeDependents(inst->isDOPPLoadSuccess());
+        inst->shouldDOPPWakeDependents(inst->isDOPPLoadSuccess());
     }
 }
 

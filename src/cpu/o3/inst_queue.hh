@@ -196,7 +196,7 @@ class InstructionQueue
      * Returns a doppelganger instruction that has finished executing 
      * but hasn't woken up its dependents 
      */
-    DynInstPtr getDOPPWakeInst();
+    DynInstPtr getDOPPInstToWakeDeps();
 
     /** Gets a memory instruction that was referred due to a delayed DTB
      *  translation if it is now ready to execute.  NULL if none available.
@@ -240,7 +240,7 @@ class InstructionQueue
     /**
      * Wakes all dependents of a doppelganger load without calling completeMemInst (which has to be called later) 
      */
-    int doppWakeDependents(DynInstPtr &completed_inst);
+    int wakeDOPPDependents(DynInstPtr &completed_inst);
 
     /** [Jiyong, STT] do a scan of instList and wake readyToIssue insts **/
     /** Used because wakeDependents cannot set readyToIssue if argsTainted **/
