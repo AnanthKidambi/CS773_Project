@@ -27,10 +27,10 @@ int main(int argc, char** argv){
     char acc = 1;
     size_t y = 1;
 
-    for (register size_t i = 0; i < n_iters/(NPAGES * PAGE_SIZE); i++) {
-        for (register size_t j = 0; j < NPAGES * PAGE_SIZE; j++) {
+    for (register size_t i = 0; i < n_iters/NPAGES + 1; i++) {
+        for (register size_t j = 0; j < NPAGES; j++) {
             if (acc){
-                register size_t idx = NPAGES * b[j];
+                register size_t idx = PAGE_SIZE * b[j];
                 y += a[idx];
                 // flush(&a[idx]);
             }

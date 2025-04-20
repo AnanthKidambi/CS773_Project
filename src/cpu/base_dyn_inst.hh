@@ -243,7 +243,7 @@ class BaseDynInst : public ExecContext, public RefCounted
     /**
      * Predicted address of doppelganger load
      */
-    typedef LastTimeAddressPredictor<Impl> DOPPAddressPredictor; // todo: put this in impl
+    typedef IPStridePredictor<Impl> DOPPAddressPredictor; // todo: put this in impl
     Addr DOPPPredAddr = 0; 
     DOPPAddressPredictor* doppAddressPredictor = nullptr;
 

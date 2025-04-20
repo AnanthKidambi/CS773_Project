@@ -790,6 +790,12 @@ LSQUnit<Impl>::executeLoad(DynInstPtr &inst)
         load_fault == NoFault)
         return load_fault;
 
+    // Akk[DOPP2]: update the doppelganger correct prediction statistics
+    // Akk[DOPP2]
+    assert(!inst->isDOPPLoadExecuting());
+    iewStage->totalCorrectDOPPLoads += (inst->isDOPPLoadSuccess() && inst->isDOPPPredCorrect());
+    iewStage->totalDOPPLoads += inst->isDOPPLoadSuccess();
+
     // If the instruction faulted or predicated false, then we need to send it
     // along to commit without the instruction completing.
     //

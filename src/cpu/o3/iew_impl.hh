@@ -298,6 +298,20 @@ DefaultIEW<Impl>::regStats()
         .desc("insts written-back per cycle")
         .flags(total);
     wbRate = writebackCount / cpu->numCycles;
+
+    // Akk[DOPP2]
+    totalCorrectDOPPLoads
+        .name(name() + ".totalCorrectDOPPLoads")
+        .desc("Total number of correct DOPP loads");
+
+    totalDOPPLoads
+        .name(name() + ".totalDOPPLoads")
+        .desc("Total number of DOPP loads");
+        
+    doppAccuracy
+        .name(name() + ".doppAccuracy")
+        .desc("DOPP load accuracy");
+    doppAccuracy = totalCorrectDOPPLoads / totalDOPPLoads;
 }
 
 template<class Impl>

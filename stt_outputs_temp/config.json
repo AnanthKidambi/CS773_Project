@@ -238,7 +238,7 @@
                         "pid": 100, 
                         "kvmInSE": false, 
                         "cxx_class": "Process", 
-                        "executable": "dopp_test/tainted_acc", 
+                        "executable": "dopp_test/tainted_acc1", 
                         "drivers": [], 
                         "system": "system", 
                         "gid": 100, 
@@ -255,8 +255,8 @@
                         "path": "system.cpu.workload", 
                         "name": "workload", 
                         "cmd": [
-                            "dopp_test/tainted_acc", 
-                            "100000"
+                            "dopp_test/tainted_acc1", 
+                            "10000"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 

@@ -382,7 +382,7 @@ class DefaultIEW
 
     // Akk[DOPP2]
     /** Doppelganger predictor */
-    LastTimeAddressPredictor<Impl> doppAddressPredictor;
+    IPStridePredictor<Impl> doppAddressPredictor;
 
     /** Pointer to the functional unit pool. */
     FUPool *fuPool;
@@ -505,6 +505,13 @@ class DefaultIEW
     Stats::Formula wbRate;
     /** Average number of woken instructions per writeback. */
     Stats::Formula wbFanout;
+
+    // Akk[DOPP2]
+    Stats::Scalar totalCorrectDOPPLoads;
+    Stats::Scalar totalDOPPLoads;
+    Stats::Formula doppAccuracy;
+
+    friend class LSQUnit<Impl>;
 };
 
 #endif // __CPU_O3_IEW_HH__
