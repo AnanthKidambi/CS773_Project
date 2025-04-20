@@ -29,6 +29,8 @@ $STT_PATH/build/X86_MESI_Two_Level/gem5.opt --outdir=$OUT_DIR \
     --threat_model=Spectre --needsTSO=1 --STT=1 --implicit_channel=1 \
     --moreTransmitInsts=0 --ifPrintROB=0 \
     --DOPP=1 \
+    --doppPredictorType=1 \
+    --doppPredictorSize=500 \
     -c $EXE_PATH \
     -o "-g 11 -n 1"
     # -o "10000" \

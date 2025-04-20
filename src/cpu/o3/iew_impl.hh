@@ -70,7 +70,6 @@ DefaultIEW<Impl>::DefaultIEW(O3CPU *_cpu, DerivO3CPUParams *params)
       cpu(_cpu),
       instQueue(_cpu, this, params),
       ldstQueue(_cpu, this, params),
-      doppAddressPredictor(500), // Akk[DOPP2]
       fuPool(params->fuPool),
       commitToIEWDelay(params->commitToIEWDelay),
       renameToIEWDelay(params->renameToIEWDelay),
@@ -111,6 +110,9 @@ DefaultIEW<Impl>::DefaultIEW(O3CPU *_cpu, DerivO3CPUParams *params)
     updateLSQNextCycle = false;
 
     skidBufferMax = (renameToIEWDelay + 1) * params->renameWidth;
+
+    // Akk[DOPP2]
+    doppAddressPredictor = createDOPPPredictor<Impl>(params->doppPredictorSize, params->doppPredictorType);
 }
 
 template <class Impl>

@@ -243,9 +243,8 @@ class BaseDynInst : public ExecContext, public RefCounted
     /**
      * Predicted address of doppelganger load
      */
-    typedef IPStridePredictor<Impl> DOPPAddressPredictor; // todo: put this in impl
     Addr DOPPPredAddr = 0; 
-    DOPPAddressPredictor* doppAddressPredictor = nullptr;
+    DOPPPredictor<Impl>* doppAddressPredictor = nullptr;
 
   public:
     /** The thread this instruction is from. */
@@ -479,7 +478,7 @@ class BaseDynInst : public ExecContext, public RefCounted
 
     // Akk[DOPP2]
     // A hacky way of calling the predictor by storing the pointer in instructions
-    void setDOPPAddressPredictorPtr(DOPPAddressPredictor* doppAddressPredictor){
+    void setDOPPAddressPredictorPtr(DOPPPredictor<Impl>* doppAddressPredictor){
         this->doppAddressPredictor = doppAddressPredictor;
     }
 

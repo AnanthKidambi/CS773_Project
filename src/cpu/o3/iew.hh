@@ -382,7 +382,7 @@ class DefaultIEW
 
     // Akk[DOPP2]
     /** Doppelganger predictor */
-    IPStridePredictor<Impl> doppAddressPredictor;
+    DOPPPredictor<Impl>* doppAddressPredictor;
 
     /** Pointer to the functional unit pool. */
     FUPool *fuPool;

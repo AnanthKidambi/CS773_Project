@@ -303,14 +303,19 @@ def addCommonOptions(parser):
     # [Jiyong,DDIFT] add options for DDIFT configurations
     parser.add_option("--STT", default=None, action="store", type="int",
             help="Whether using STT mechanism(threat_model mustn't be Unsafe.")
-    parser.add_option("--DOPP", default=None, action="store", type="int",
-            help="Whether using DOPP optimization(STT should be enabled).")
     parser.add_option("--implicit_channel", default=None, action="store", type="int",
             help="Whether enabling defense mechanism for implicit channel")
     parser.add_option("--ifPrintROB", default=None, action="store", type="int",
             help="Enable printing ROB content at every cycle")
     parser.add_option("--moreTransmitInsts", default=None, action="store", type="int",
             help="Include more transmit instruction types.")
+    # Akk[DOPP2]
+    parser.add_option("--DOPP", default=None, action="store", type="int",
+            help="Whether using DOPP optimization(STT should be enabled).")
+    parser.add_option("--doppPredictorType", default=None, action="store", type="int",
+            help="Type of predictor to be used for doppelganger loads.")
+    parser.add_option("--doppPredictorSize", default=None, action="store", type="int",
+            help="Size of doppelganger load predictor.")
 
 def addSEOptions(parser):
     # Benchmark options

@@ -4,6 +4,8 @@
         "memory": "cpp",
         "random": "cpp",
         "optional": "cpp",
-        "map": "cpp"
+        "map": "cpp",
+        "*.l1d_pref": "cpp",
+        "vector": "cpp"
     }
 }
