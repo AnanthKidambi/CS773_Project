@@ -69,6 +69,7 @@
 #include "mem/request.hh"
 #include "sim/byteswap.hh"
 #include "sim/system.hh"
+#include "cpu/o3/dopp_pred.hh"
 
 /**
  * @file
@@ -193,6 +194,7 @@ class BaseDynInst : public ExecContext, public RefCounted
         DOPPShouldWakeDependents,
         DOPPHasWokenDependents, // set if the doppelganger load has woken up dependents
         DOPPMispredicted,
+        HasUpdatedDOPPPredictor,
         MaxFlags
     };
 
@@ -241,7 +243,9 @@ class BaseDynInst : public ExecContext, public RefCounted
     /**
      * Predicted address of doppelganger load
      */
+    typedef LastTimeAddressPredictor<Impl> DOPPAddressPredictor; // todo: put this in impl
     Addr DOPPPredAddr = 0; 
+    DOPPAddressPredictor* doppAddressPredictor = nullptr;
 
   public:
     /** The thread this instruction is from. */
@@ -452,8 +456,13 @@ class BaseDynInst : public ExecContext, public RefCounted
     bool hasDOPPWokenDependents() const { return instFlags[DOPPHasWokenDependents]; }
     void hasDOPPWokenDependents(bool f) { instFlags[DOPPHasWokenDependents] = f; }
 
-    void setDOPPMispredicted(Addr actualAddr) {
-        instFlags[DOPPMispredicted] = (actualAddr != DOPPPredAddr);
+    void updateDOPPPredictor(Addr actualAddr) {
+        assert(doppAddressPredictor);
+        if (!instFlags[HasUpdatedDOPPPredictor]){
+            instFlags[HasUpdatedDOPPPredictor] = true;
+            instFlags[DOPPMispredicted] = (actualAddr != DOPPPredAddr);
+            doppAddressPredictor->train(this->pc.instAddr(), actualAddr);
+        }
     } 
 
     bool isDOPPPredCorrect() const { return !instFlags[DOPPMispredicted]; }
@@ -461,9 +470,17 @@ class BaseDynInst : public ExecContext, public RefCounted
     // Akk[DOPP2]
     Addr getDOPPPredAddr() {
         // Todo: Call the predictor here
-        assert(!DOPPPredAddr);
-        DOPPPredAddr = static_cast<Addr>(1ull);
+        assert(doppAddressPredictor);
+        if (!DOPPPredAddr){
+            DOPPPredAddr = doppAddressPredictor->get(this->pc.instAddr());
+        }
         return DOPPPredAddr;
+    }
+
+    // Akk[DOPP2]
+    // A hacky way of calling the predictor by storing the pointer in instructions
+    void setDOPPAddressPredictorPtr(DOPPAddressPredictor* doppAddressPredictor){
+        this->doppAddressPredictor = doppAddressPredictor;
     }
 
     ////////////////////////////////////////////
@@ -1191,11 +1208,14 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
     // }
 
     // Akk[DOPP2]
-    if (isDOPPLoadExecuting()){
-        addr = getDOPPPredAddr();
-    }
-    else {
-        setDOPPMispredicted(addr);
+    if (cpu->DOPP){
+        if (isDOPPLoadExecuting()){
+            addr = getDOPPPredAddr();
+        }
+        // It is also possible to train the predictor for loads which do not issue doppelgangers, since they may do so in the future
+        else if (hasDOPPLoadFinished()){ 
+            updateDOPPPredictor(addr);
+        }
     }
 
     instFlags[ReqMade] = true;

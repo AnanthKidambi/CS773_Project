@@ -741,6 +741,9 @@ LSQUnit<Impl>::executeLoad(DynInstPtr &inst)
     // Execute a specific load.
     Fault load_fault = NoFault;
 
+    // Akk[DOPP2]
+    inst->setDOPPAddressPredictorPtr(&(iewStage->doppAddressPredictor));
+
     DPRINTF(LSQUnit, "Executing load PC %s, [sn:%lli]\n",
             inst->pcState(), inst->seqNum);
 

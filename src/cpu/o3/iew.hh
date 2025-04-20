@@ -53,6 +53,8 @@
 #include "cpu/timebuf.hh"
 #include "debug/IEW.hh"
 #include "sim/probe/probe.hh"
+// Akk[DOPP2]
+#include "cpu/o3/dopp_pred.hh"
 
 struct DerivO3CPUParams;
 class FUPool;
@@ -377,6 +379,10 @@ class DefaultIEW
 
     /** Load / store queue. */
     LSQ ldstQueue;
+
+    // Akk[DOPP2]
+    /** Doppelganger predictor */
+    LastTimeAddressPredictor<Impl> doppAddressPredictor;
 
     /** Pointer to the functional unit pool. */
     FUPool *fuPool;
