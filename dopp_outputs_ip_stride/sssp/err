@@ -1,0 +1,48 @@
+warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (4096 Mbytes)
+warn: Sockets disabled, not accepting gdb connections
+info: Entering event queue @ 0.  Starting simulation...
+info: Increasing stack size by one page.
+warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/mnt/c/Users/Ananth/Desktop/Academic IITB/sem8/CS773/project/gapbs/sssp'
+info: Increasing stack size by one page.
+warn: ignoring syscall mprotect(...)
+info: Increasing stack size by one page.
+info: Increasing stack size by one page.
+panic: Tried to read unmapped address 0.
+PC: 0x4fe05e, Instr:   MOV_R_M : ld   rsi, DS:[r8]
+Memory Usage: 4909776 KBytes
+Program aborted at tick 190885099500
+--- BEGIN LIBC BACKTRACE ---
+./build/X86_MESI_Two_Level/gem5.opt(_Z15print_backtracev+0x30)[0x55ea070a52d0]
+./build/X86_MESI_Two_Level/gem5.opt(_Z12abortHandleri+0x4e)[0x55ea070b809e]
+/lib/x86_64-linux-gnu/libpthread.so.0(+0x14420)[0x7f34a96c3420]
+/lib/x86_64-linux-gnu/libc.so.6(gsignal+0xcb)[0x7f34a8c6400b]
+/lib/x86_64-linux-gnu/libc.so.6(abort+0x12b)[0x7f34a8c43859]
+./build/X86_MESI_Two_Level/gem5.opt(+0x491ff5)[0x55ea063feff5]
+./build/X86_MESI_Two_Level/gem5.opt(_ZN6X86ISA9PageFault6invokeEP13ThreadContextRK14RefCountingPtrI10StaticInstE+0xf85)[0x55ea065d63a5]
+./build/X86_MESI_Two_Level/gem5.opt(_ZN13DefaultCommitI9O3CPUImplE10commitHeadER14RefCountingPtrI13BaseO3DynInstIS0_EEj+0xa7e)[0x55ea06ffa31e]
+./build/X86_MESI_Two_Level/gem5.opt(_ZN13DefaultCommitI9O3CPUImplE11commitInstsEv+0x699)[0x55ea06ffafa9]
+./build/X86_MESI_Two_Level/gem5.opt(_ZN13DefaultCommitI9O3CPUImplE6commitEv+0x608)[0x55ea06fff308]
+./build/X86_MESI_Two_Level/gem5.opt(_ZN13DefaultCommitI9O3CPUImplE4tickEv+0xe7)[0x55ea06fff857]
+./build/X86_MESI_Two_Level/gem5.opt(_ZN9FullO3CPUI9O3CPUImplE4tickEv+0x157)[0x55ea07013a67]
+./build/X86_MESI_Two_Level/gem5.opt(_ZN10EventQueue10serviceOneEv+0x9b)[0x55ea070ad20b]
+./build/X86_MESI_Two_Level/gem5.opt(_Z9doSimLoopP10EventQueue+0xf8)[0x55ea070c22a8]
+./build/X86_MESI_Two_Level/gem5.opt(_Z8simulatem+0xaed)[0x55ea070c309d]
+./build/X86_MESI_Two_Level/gem5.opt(+0x4ece20)[0x55ea06459e20]
+./build/X86_MESI_Two_Level/gem5.opt(+0x4c632f)[0x55ea0643332f]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalFrameEx+0x64d2)[0x7f34a97ea022]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalCodeEx+0x808)[0x7f34a97e34a8]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalFrameEx+0x70e9)[0x7f34a97eac39]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalFrameEx+0x96f4)[0x7f34a97ed244]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalFrameEx+0x96f4)[0x7f34a97ed244]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalCodeEx+0x808)[0x7f34a97e34a8]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalCode+0x1d)[0x7f34a97e39fd]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalFrameEx+0x6fde)[0x7f34a97eab2e]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalCodeEx+0x808)[0x7f34a97e34a8]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalFrameEx+0x70e9)[0x7f34a97eac39]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalCodeEx+0x808)[0x7f34a97e34a8]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyEval_EvalCode+0x1d)[0x7f34a97e39fd]
+/lib/x86_64-linux-gnu/libpython2.7.so.1.0(PyRun_StringFlags+0x7a)[0x7f34a97bc2da]
+./build/X86_MESI_Two_Level/gem5.opt(_Z6m5MainiPPc+0x8b)[0x55ea070b5d2b]
+./build/X86_MESI_Two_Level/gem5.opt(main+0x47)[0x55ea063d67f7]
+--- END LIBC BACKTRACE ---

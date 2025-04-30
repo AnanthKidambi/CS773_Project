@@ -221,15 +221,16 @@
                 }, 
                 "fetchWidth": 8, 
                 "max_loads_all_threads": 0, 
-                "cpu_id": 0, 
+                "smtFetchPolicy": "SingleThread", 
                 "fetchToDecodeDelay": 1, 
                 "renameToDecodeDelay": 1, 
                 "do_quiesce": true, 
                 "renameToROBDelay": 1, 
+                "commitToFetchDelay": 1, 
                 "power_model": [], 
                 "max_insts_all_threads": 0, 
+                "doppPredictorType": 1, 
                 "decodeWidth": 8, 
-                "commitToFetchDelay": 1, 
                 "needsTSO": true, 
                 "smtIQThreshold": 100, 
                 "workload": [
@@ -238,7 +239,7 @@
                         "pid": 100, 
                         "kvmInSE": false, 
                         "cxx_class": "Process", 
-                        "executable": "dopp_test/tainted_acc1", 
+                        "executable": "/mnt/c/Users/Ananth/Desktop/Academic IITB/sem8/CS773/project/spec2017/500.perlbench_r//exe/perlbench_r_base.gem5_se-m64", 
                         "drivers": [], 
                         "system": "system", 
                         "gid": 100, 
@@ -247,7 +248,7 @@
                         "maxStackSize": 67108864, 
                         "ppid": 0, 
                         "type": "Process", 
-                        "cwd": "/mnt/c/Users/Ananth/Desktop/Academic IITB/sem8/CS773/project/stt", 
+                        "cwd": "/mnt/c/Users/Ananth/Desktop/Academic IITB/sem8/CS773/project/spec2017/500.perlbench_r/data/all/input", 
                         "pgid": 100, 
                         "simpoint": 0, 
                         "euid": 100, 
@@ -255,8 +256,8 @@
                         "path": "system.cpu.workload", 
                         "name": "workload", 
                         "cmd": [
-                            "dopp_test/tainted_acc1", 
-                            "10000"
+                            "/mnt/c/Users/Ananth/Desktop/Academic IITB/sem8/CS773/project/spec2017/500.perlbench_r//exe/perlbench_r_base.gem5_se-m64", 
+                            "diffmail.pl"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 
@@ -790,6 +791,7 @@
                 }, 
                 "socket_id": 0, 
                 "renameToFetchDelay": 1, 
+                "doppPredictorSize": 500, 
                 "icache": {
                     "cpu_side": {
                         "peer": "system.cpu.icache_port", 
@@ -1177,7 +1179,7 @@
                 "commitWidth": 8, 
                 "clk_domain": "system.cpu_clk_domain", 
                 "function_trace_start": 0, 
-                "smtFetchPolicy": "SingleThread", 
+                "cpu_id": 0, 
                 "profile": 0, 
                 "icache_port": {
                     "peer": "system.cpu.icache.cpu_side", 

@@ -4,11 +4,11 @@ sim_seconds                                  0.153114                       # Nu
 sim_ticks                                153113543500                       # Number of ticks simulated
 final_tick                               153113543500                       # Number of ticks from beginning of simulation (restored from checkpoints and never reset)
 sim_freq                                 1000000000000                       # Frequency of simulated ticks
-host_inst_rate                                  31542                       # Simulator instruction rate (inst/s)
-host_op_rate                                    49887                       # Simulator op (including micro ops) rate (op/s)
-host_tick_rate                               19243495                       # Simulator tick rate (ticks/s)
-host_mem_usage                                4746940                       # Number of bytes of host memory used
-host_seconds                                  7956.64                       # Real time elapsed on the host
+host_inst_rate                                  60026                       # Simulator instruction rate (inst/s)
+host_op_rate                                    94938                       # Simulator op (including micro ops) rate (op/s)
+host_tick_rate                               36621304                       # Simulator tick rate (ticks/s)
+host_mem_usage                                4746960                       # Number of bytes of host memory used
+host_seconds                                  4181.00                       # Real time elapsed on the host
 sim_insts                                   250967601                       # Number of instructions simulated
 sim_ops                                     396934376                       # Number of ops (including micro ops) simulated
 system.voltage_domain.voltage                       1                       # Voltage in Volts
@@ -549,6 +549,9 @@ system.cpu.iew.wb_producers                 481566376                       # nu
 system.cpu.iew.wb_consumers                 778632789                       # num instructions consuming a value
 system.cpu.iew.wb_rate                       2.052480                       # insts written-back per cycle
 system.cpu.iew.wb_fanout                     0.618477                       # average fanout of values written-back
+system.cpu.iew.totalCorrectDOPPLoads                0                       # Total number of correct DOPP loads
+system.cpu.iew.totalDOPPLoads                       0                       # Total number of DOPP loads
+system.cpu.iew.doppAccuracy                       nan                       # DOPP load accuracy
 system.cpu.commit.commitSquashedInsts       391486704                       # The number of squashed insts skipped by commit
 system.cpu.commit.commitNonSpecStalls             351                       # The number of times commit has been forced to stall to communicate backwards
 system.cpu.commit.branchMispredicts           8117826                       # The number of times a branch was mispredicted

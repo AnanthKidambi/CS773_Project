@@ -221,15 +221,16 @@
                 }, 
                 "fetchWidth": 8, 
                 "max_loads_all_threads": 0, 
-                "cpu_id": 0, 
+                "smtFetchPolicy": "SingleThread", 
                 "fetchToDecodeDelay": 1, 
                 "renameToDecodeDelay": 1, 
                 "do_quiesce": true, 
                 "renameToROBDelay": 1, 
+                "commitToFetchDelay": 1, 
                 "power_model": [], 
                 "max_insts_all_threads": 0, 
+                "doppPredictorType": 1, 
                 "decodeWidth": 8, 
-                "commitToFetchDelay": 1, 
                 "needsTSO": true, 
                 "smtIQThreshold": 100, 
                 "workload": [
@@ -793,6 +794,7 @@
                 }, 
                 "socket_id": 0, 
                 "renameToFetchDelay": 1, 
+                "doppPredictorSize": 500, 
                 "icache": {
                     "cpu_side": {
                         "peer": "system.cpu.icache_port", 
@@ -1180,7 +1182,7 @@
                 "commitWidth": 8, 
                 "clk_domain": "system.cpu_clk_domain", 
                 "function_trace_start": 0, 
-                "smtFetchPolicy": "SingleThread", 
+                "cpu_id": 0, 
                 "profile": 0, 
                 "icache_port": {
                     "peer": "system.cpu.icache.cpu_side", 
