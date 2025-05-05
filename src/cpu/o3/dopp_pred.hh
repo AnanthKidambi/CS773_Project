@@ -17,6 +17,7 @@ class DOPPPredictor{
 public:
     virtual Addr get(Addr pc) = 0;
     virtual void train(Addr pc, Addr addr) = 0;
+    virtual bool isOraclePredictor() { return false; }
 };
 
 template <class Impl>
@@ -285,6 +286,18 @@ public:
 };
 
 template <class Impl>
+class OraclePredictor : public DOPPPredictor<Impl> {
+public:
+    virtual Addr get(Addr pc) override {
+        return 0;
+    }
+    virtual void train(Addr pc, Addr addr) override {
+        return;
+    }
+    virtual bool isOraclePredictor() override { return true; }
+};
+
+template <class Impl>
 DOPPPredictor<Impl>* createDOPPPredictor(size_t _size, uint8_t predictor_type){
     if (predictor_type == 0){
         return new LastTimeAddressPredictor<Impl>(_size);
@@ -294,6 +307,9 @@ DOPPPredictor<Impl>* createDOPPPredictor(size_t _size, uint8_t predictor_type){
     }
     else if (predictor_type == 2){
         return new ComplexStridePredictor<Impl>(_size);
+    }
+    else if (predictor_type == 3){
+        return new OraclePredictor<Impl>(); // oracle predictor, will be handled outside directly
     }
     else{
         fatal("Unknown predictor type %d\n", predictor_type);

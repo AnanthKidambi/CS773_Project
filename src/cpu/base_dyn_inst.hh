@@ -1209,7 +1209,12 @@ BaseDynInst<Impl>::initiateMemRead(Addr addr, unsigned size,
     // Akk[DOPP2]
     if (cpu->DOPP){
         if (isDOPPLoadExecuting()){
-            addr = getDOPPPredAddr();
+            if (!doppAddressPredictor->isOraclePredictor()){
+                addr = getDOPPPredAddr();
+            }
+            else {
+                DOPPPredAddr = addr;
+            }
         }
         // It is also possible to train the predictor for loads which do not issue doppelgangers, since they may do so in the future
         else if (hasDOPPLoadFinished()){ 

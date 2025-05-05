@@ -1,0 +1,12 @@
+warn: DRAM device capacity (8192 Mbytes) does not match the address range assigned (4096 Mbytes)
+warn: Sockets disabled, not accepting gdb connections
+info: Entering event queue @ 0.  Starting simulation...
+warn: x86 cpuid family 0x0000: unimplemented function 13
+info: Increasing stack size by one page.
+warn: readlink() called on '/proc/self/exe' may yield unexpected results in various settings.
+      Returning '/mnt/c/Users/Ananth/Desktop/Academic IITB/sem8/CS773/project/gapbs/bc'
+info: Increasing stack size by one page.
+warn: ignoring syscall mprotect(...)
+warn: x86 cpuid family 0x0000: unimplemented function 4
+info: Increasing stack size by one page.
+info: Increasing stack size by one page.

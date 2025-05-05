@@ -239,7 +239,7 @@
                         "pid": 100, 
                         "kvmInSE": false, 
                         "cxx_class": "Process", 
-                        "executable": "../gapbs/cc_sv", 
+                        "executable": "../gapbs/tc", 
                         "drivers": [], 
                         "system": "system", 
                         "gid": 100, 
@@ -256,11 +256,11 @@
                         "path": "system.cpu.workload", 
                         "name": "workload", 
                         "cmd": [
-                            "../gapbs/cc_sv", 
+                            "../gapbs/tc", 
                             "-g", 
-                            "11", 
+                            "14", 
                             "-n", 
-                            "1"
+                            "4"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 

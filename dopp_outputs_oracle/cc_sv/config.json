@@ -258,9 +258,9 @@
                         "cmd": [
                             "../gapbs/cc_sv", 
                             "-g", 
-                            "11", 
+                            "14", 
                             "-n", 
-                            "1"
+                            "4"
                         ], 
                         "errout": "cerr", 
                         "useArchPT": false, 
